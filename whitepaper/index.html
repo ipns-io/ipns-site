@@ -726,9 +726,9 @@ Request: https://ipns.io/alice/docs/
       Open source means more than "source available." It means anyone can reproduce the system and verify they are running the same protocol:
     </p>
     <ul>
-      <li><strong>Contract source</strong> (Apache-2.0): <code>github.com/ipns-io/ipns-contracts</code></li>
-      <li><strong>Gateway reference implementation</strong> (Apache-2.0): <code>github.com/ipns-io/ipns-gateway</code></li>
-      <li><strong>Protocol + gateway spec</strong> (Apache-2.0): <code>github.com/ipns-io/spec</code></li>
+      <li><strong>Contract source</strong> (Apache-2.0): <code>github.com/wyn-eth/ipns-contracts</code></li>
+      <li><strong>Gateway reference implementation</strong> (Apache-2.0): <code>github.com/wyn-eth/ipns-gateway</code></li>
+      <li><strong>Website + docs</strong> (Apache-2.0): <code>github.com/wyn-eth/ipns-site</code></li>
     </ul>
     <p>
       Reference gateway quickstart:
@@ -824,9 +824,25 @@ owner:    0x... <span class="comment">(multisig)</span></div>
 
   <div class="ascii-divider">── · · · ──</div>
 
+  <div class="section">
+    <span class="section-num">12 — Security Model</span>
+    <h2>Threats and mitigations are public</h2>
+    <p>
+      IPNS.io maintains a public threat model covering on-chain authorization, name sniping/front-running, gateway cache consistency, RPC dependency, DNS/TLS risk, and key management.
+    </p>
+    <p>
+      The model includes prioritized mitigations and operational ownership, and is updated as architecture changes.
+    </p>
+    <p>
+      Threat model: <code>github.com/wyn-eth/ipns-site/blob/main/THREAT_MODEL.md</code>
+    </p>
+  </div>
+
+  <div class="ascii-divider">── · · · ──</div>
+
   <!-- 11: Conclusion -->
   <div class="section">
-    <span class="section-num">12 — Conclusion</span>
+    <span class="section-num">13 — Conclusion</span>
     <h2>Names for IPFS. That's it.</h2>
     <p>
       IPFS made content permanent. It didn't make content shareable. IPNS.io is the naming layer that closes that gap: an open protocol that maps human-readable names to IPFS content, on-chain, for $1/year, accessible in any browser.
