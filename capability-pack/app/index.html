@@ -1,0 +1,120 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>app.ipns.io mock</title>
+<link rel="stylesheet" href="../assets/theme.css" />
+</head>
+<body>
+<header class="top">
+  <div class="brand">app.ipns.io</div>
+  <span class="badge">register flow mock</span>
+</header>
+<main class="wrap">
+  <section class="hero">
+    <h1>Single-purpose app: claim a name.</h1>
+    <p>Static frontend, wallet flow, onchain call prep. No app server required.</p>
+    <div class="nav-links">
+      <a href="../www/index.html">www</a>
+      <a href="../docs/index.html">docs</a>
+      <a href="../admin/index.html">admin</a>
+      <a href="../app/index.html">app</a>
+      <a href="../status/index.html">status</a>
+    </div>
+  </section>
+
+  <section class="grid">
+    <article class="card span-5">
+      <h2>Configure registration</h2>
+      <label>Name
+        <input id="regName" value="hello" />
+      </label>
+      <label style="margin-top:10px;">Years
+        <select id="regYears">
+          <option>1</option>
+          <option>2</option>
+          <option>3</option>
+          <option>5</option>
+        </select>
+      </label>
+      <div class="controls" style="margin-top:10px;">
+        <button id="calcBtn">Estimate</button>
+        <button class="secondary" id="buildTxBtn">Build tx payload</button>
+      </div>
+      <p class="muted" id="appMsg" style="margin-top:10px;">Ready.</p>
+    </article>
+
+    <article class="card span-7">
+      <h2>Transaction payload preview</h2>
+      <pre class="code" id="payload">{
+  "to": "0x7Bb7f1C90DeDd39F58D4F0EDc96B9722997CCc2d",
+  "method": "register(string,uint8)",
+  "args": ["hello", 1],
+  "valueWei": "auto"
+}</pre>
+      <div class="controls" style="margin-top:10px;">
+        <button id="copyPayload">Copy payload</button>
+      </div>
+    </article>
+
+    <article class="card span-12">
+      <h3>Length bands</h3>
+      <table class="table">
+        <tr><th>Length</th><th>ETH/year</th><th>Est USD/year</th></tr>
+        <tr><td>1</td><td>0.017</td><td>$50</td></tr>
+        <tr><td>2</td><td>0.0083</td><td>$25</td></tr>
+        <tr><td>3</td><td>0.0033</td><td>$10</td></tr>
+        <tr><td>4</td><td>0.0017</td><td>$5</td></tr>
+        <tr><td>5+</td><td>0.00033</td><td>$1</td></tr>
+      </table>
+    </article>
+  </section>
+
+  <p class="footer">app build timestamp: <span data-now></span></p>
+</main>
+<script src="../assets/app.js"></script>
+<script>
+(function () {
+  function tier(len) {
+    if (len <= 1) return { eth: 0.017, usd: 50 };
+    if (len === 2) return { eth: 0.0083, usd: 25 };
+    if (len === 3) return { eth: 0.0033, usd: 10 };
+    if (len === 4) return { eth: 0.0017, usd: 5 };
+    return { eth: 0.00033, usd: 1 };
+  }
+
+  const regName = document.getElementById('regName');
+  const regYears = document.getElementById('regYears');
+  const payload = document.getElementById('payload');
+  const msg = document.getElementById('appMsg');
+
+  function renderPayload() {
+    const name = (regName.value || '').trim().toLowerCase();
+    const years = Number(regYears.value || 1);
+    const t = tier(name.length || 1);
+    const valueEth = (t.eth * years).toFixed(6);
+    payload.textContent = JSON.stringify({
+      to: '0x7Bb7f1C90DeDd39F58D4F0EDc96B9722997CCc2d',
+      method: 'register(string,uint8)',
+      args: [name || 'name', years],
+      valueEth: valueEth,
+      valueWeiHint: 'getPrice(name, years) onchain for exact quote'
+    }, null, 2);
+    msg.innerHTML = '<span class="ok">Estimate:</span> ~$' + (t.usd * years) + ' total, length=' + (name.length || 1);
+  }
+
+  document.getElementById('calcBtn').addEventListener('click', renderPayload);
+  document.getElementById('buildTxBtn').addEventListener('click', renderPayload);
+  document.getElementById('copyPayload').addEventListener('click', async () => {
+    try {
+      await navigator.clipboard.writeText(payload.textContent);
+      msg.innerHTML = '<span class="ok">payload copied</span>';
+    } catch (_) {
+      msg.innerHTML = '<span class="warn">clipboard blocked</span>';
+    }
+  });
+})();
+</script>
+</body>
+</html>

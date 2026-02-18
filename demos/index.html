@@ -1,0 +1,148 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>IPNS.io — Capability Pack</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@900&family=DM+Mono:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --bg: #0a0a0a;
+    --surface: #111;
+    --border: #222;
+    --fg: #f0f0f0;
+    --dim: #666;
+    --g: #00ff41;
+  }
+  body {
+    background: var(--bg);
+    color: var(--fg);
+    font-family: 'DM Mono', monospace;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 48px 24px;
+  }
+
+  .logo {
+    font-family: 'Playfair Display', serif;
+    font-size: 56px;
+    font-weight: 900;
+    letter-spacing: -2px;
+    color: var(--fg);
+    margin-bottom: 8px;
+  }
+  .logo span { color: var(--g); }
+
+  .tagline {
+    font-size: 12px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--dim);
+    margin-bottom: 64px;
+  }
+
+  .cards {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 1px;
+    background: var(--border);
+    border: 1px solid var(--border);
+    max-width: 900px;
+    width: 100%;
+    margin-bottom: 32px;
+  }
+
+  .card {
+    background: var(--surface);
+    padding: 28px 24px;
+    text-decoration: none;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    transition: background 0.15s;
+  }
+  .card:hover { background: #161616; }
+
+  .card-subdomain {
+    font-size: 11px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--g);
+  }
+
+  .card-title {
+    font-size: 18px;
+    font-weight: 500;
+    color: var(--fg);
+    line-height: 1.3;
+  }
+
+  .card-desc {
+    font-size: 11px;
+    line-height: 1.7;
+    color: var(--dim);
+    flex: 1;
+  }
+
+  .card-arrow {
+    font-size: 18px;
+    color: var(--dim);
+    transition: color 0.15s, transform 0.15s;
+  }
+  .card:hover .card-arrow { color: var(--g); transform: translateX(4px); }
+
+  .footer {
+    font-size: 11px;
+    color: var(--dim);
+    letter-spacing: 0.05em;
+    text-align: center;
+  }
+</style>
+</head>
+<body>
+
+<div class="logo">IPNS<span>.</span>io</div>
+<div class="tagline">IPFS makes content immutable · We make references mutable</div>
+
+<div class="cards">
+  <a class="card" href="https://www.ipns.io/">
+    <div class="card-subdomain">www</div>
+    <div class="card-title">Landing + Registration</div>
+    <div class="card-desc">Editorial luxury. Pricing, conversion, the full pitch.</div>
+    <div class="card-arrow">→</div>
+  </a>
+  <a class="card" href="https://docs.ipns.io/">
+    <div class="card-subdomain">docs</div>
+    <div class="card-title">Developer Docs</div>
+    <div class="card-desc">Clean brutalist. Contract ABI, endpoints, code examples.</div>
+    <div class="card-arrow">→</div>
+  </a>
+  <a class="card" href="https://admin.ipns.io/">
+    <div class="card-subdomain">admin</div>
+    <div class="card-title">Ops Console</div>
+    <div class="card-desc">Military ops center. Command builder, registry control.</div>
+    <div class="card-arrow">→</div>
+  </a>
+  <a class="card" href="https://app.ipns.io/">
+    <div class="card-subdomain">app</div>
+    <div class="card-title">Register a Name</div>
+    <div class="card-desc">Soft futurist. Clean UX flow for name registration.</div>
+    <div class="card-arrow">→</div>
+  </a>
+  <a class="card" href="https://status.ipns.io/">
+    <div class="card-subdomain">status</div>
+    <div class="card-title">System Status</div>
+    <div class="card-desc">Cyberpunk diagnostic. Live metrics, uptime, health checks.</div>
+    <div class="card-arrow">→</div>
+  </a>
+</div>
+
+<div class="footer">5 static sites · 5 product surfaces · 0 servers</div>
+
+</body>
+</html>

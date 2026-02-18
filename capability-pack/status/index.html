@@ -1,0 +1,129 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>status.ipns.io mock</title>
+<link rel="stylesheet" href="../assets/theme.css" />
+</head>
+<body>
+<header class="top">
+  <div class="brand">status.ipns.io</div>
+  <span class="badge">public health board</span>
+</header>
+<main class="wrap">
+  <section class="hero">
+    <h1>Public health and trust visibility.</h1>
+    <p>Show what is working, what is degraded, and where resolution can fail. Keep it direct and machine-readable.</p>
+    <div class="nav-links">
+      <a href="../www/index.html">www</a>
+      <a href="../docs/index.html">docs</a>
+      <a href="../admin/index.html">admin</a>
+      <a href="../app/index.html">app</a>
+      <a href="../status/index.html">status</a>
+    </div>
+  </section>
+
+  <section class="grid">
+    <article class="card span-4">
+      <h3>Gateway</h3>
+      <div class="kpis">
+        <div class="kpi"><div class="label">worker route</div><div class="value ok" id="routeState">up</div></div>
+        <div class="kpi"><div class="label">healthz</div><div class="value ok" id="healthState">ok</div></div>
+        <div class="kpi"><div class="label">latency p50</div><div class="value" id="latencyP50">132ms</div></div>
+        <div class="kpi"><div class="label">error rate</div><div class="value" id="errorRate">0.12%</div></div>
+      </div>
+    </article>
+
+    <article class="card span-4">
+      <h3>Chain</h3>
+      <div class="kpis">
+        <div class="kpi"><div class="label">network</div><div class="value">base sepolia</div></div>
+        <div class="kpi"><div class="label">contract</div><div class="value" style="font-size:14px;">0x7Bb7...Cc2d</div></div>
+        <div class="kpi"><div class="label">rpc</div><div class="value ok" id="rpcState">healthy</div></div>
+        <div class="kpi"><div class="label">block lag</div><div class="value" id="blockLag">0</div></div>
+      </div>
+    </article>
+
+    <article class="card span-4">
+      <h3>Content</h3>
+      <div class="kpis">
+        <div class="kpi"><div class="label">ipfs upstream</div><div class="value ok" id="ipfsState">reachable</div></div>
+        <div class="kpi"><div class="label">cache hit ratio</div><div class="value" id="cacheRatio">68%</div></div>
+        <div class="kpi"><div class="label">sample name</div><div class="value">alice.ipns.io</div></div>
+        <div class="kpi"><div class="label">sample resolve</div><div class="value ok" id="resolveState">cid found</div></div>
+      </div>
+    </article>
+
+    <article class="card span-8">
+      <h3>Incident feed</h3>
+      <table class="table" id="incidentTable">
+        <tr><th>Time (UTC)</th><th>Component</th><th>Status</th><th>Note</th></tr>
+        <tr><td>2026-02-17T00:28:11Z</td><td>ipfs upstream</td><td class="warn">degraded</td><td>gateway origin typo fixed in worker env</td></tr>
+        <tr><td>2026-02-17T00:34:02Z</td><td>name resolution</td><td class="ok">resolved</td><td>contract + CID verified for <code>alice</code></td></tr>
+        <tr><td>2026-02-17T00:40:21Z</td><td>route config</td><td class="ok">resolved</td><td>wildcard route attached to worker</td></tr>
+      </table>
+    </article>
+
+    <article class="card span-4">
+      <h3>Trust model at a glance</h3>
+      <p class="muted">If gateway is down, ownership data still exists onchain. If one gateway fails, another can serve the same names by reading the same registry.</p>
+      <p class="muted">Status page should never overclaim: distinguish registry truth, gateway availability, and IPFS retrieval health.</p>
+      <span class="pill">protocol > single host</span>
+    </article>
+
+    <article class="card span-12">
+      <h3>Synthetic check controls</h3>
+      <div class="controls">
+        <label>Sample name
+          <input id="sampleName" value="alice" />
+        </label>
+        <label>Expected CID prefix
+          <input id="cidPrefix" value="bafy" />
+        </label>
+        <button id="runCheck">Run synthetic check</button>
+      </div>
+      <pre class="code" id="checkOut" style="margin-top:10px;">ready</pre>
+    </article>
+  </section>
+
+  <p class="footer">status build timestamp: <span data-now></span></p>
+</main>
+<script src="../assets/app.js"></script>
+<script>
+(function () {
+  const out = document.getElementById('checkOut');
+
+  function rand(min, max) {
+    return Math.floor(Math.random() * (max - min + 1)) + min;
+  }
+
+  document.getElementById('runCheck').addEventListener('click', () => {
+    const name = (document.getElementById('sampleName').value || '').trim().toLowerCase();
+    const cidPrefix = (document.getElementById('cidPrefix').value || '').trim().toLowerCase();
+    const latency = rand(90, 220);
+    const cache = rand(60, 82);
+
+    document.getElementById('latencyP50').textContent = latency + 'ms';
+    document.getElementById('cacheRatio').textContent = cache + '%';
+    document.getElementById('blockLag').textContent = String(rand(0, 1));
+    document.getElementById('errorRate').textContent = (Math.random() * 0.2).toFixed(2) + '%';
+
+    const hasPrefix = cidPrefix.startsWith('bafy') || cidPrefix.startsWith('k');
+    document.getElementById('resolveState').textContent = hasPrefix ? 'cid found' : 'cid mismatch';
+    document.getElementById('resolveState').className = 'value ' + (hasPrefix ? 'ok' : 'warn');
+
+    out.textContent = [
+      'synthetic_name=' + name,
+      'gateway_healthz=ok',
+      'resolve=' + (hasPrefix ? 'pass' : 'warn'),
+      'ipfs_fetch=' + (hasPrefix ? 'pass' : 'investigate'),
+      'latency_ms=' + latency,
+      'cache_hit=' + cache + '%',
+      'checked_at=' + new Date().toISOString()
+    ].join('\n');
+  });
+})();
+</script>
+</body>
+</html>

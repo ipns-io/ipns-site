@@ -1,0 +1,88 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>docs.ipns.io mock</title>
+<link rel="stylesheet" href="../assets/theme.css" />
+</head>
+<body>
+<header class="top">
+  <div class="brand">docs.ipns.io</div>
+  <span class="badge">developer docs</span>
+</header>
+<main class="wrap">
+  <section class="hero">
+    <h1>Gateway + contract quickstart.</h1>
+    <p>Core primitives, then commands. Keep docs compact and copy-pasteable.</p>
+    <div class="nav-links">
+      <a href="../www/index.html">www</a>
+      <a href="../docs/index.html">docs</a>
+      <a href="../admin/index.html">admin</a>
+      <a href="../app/index.html">app</a>
+      <a href="../status/index.html">status</a>
+    </div>
+  </section>
+
+  <section class="grid">
+    <article class="card span-6">
+      <h2>Endpoints</h2>
+      <table class="table">
+        <tr><th>Path</th><th>What it does</th></tr>
+        <tr><td><code>/healthz</code></td><td>Gateway env + status snapshot</td></tr>
+        <tr><td><code>https://name.ipns.io/</code></td><td>Subdomain mode resolve</td></tr>
+        <tr><td><code>https://ipns.io/name/</code></td><td>Path mode resolve</td></tr>
+      </table>
+      <span class="pill">subdomain mode preferred</span>
+    </article>
+
+    <article class="card span-6">
+      <h2>Contract surface</h2>
+      <pre class="code">register(string name, uint8 numYears)
+renew(string name, uint8 numYears)
+setCID(string name, string cid)
+resolve(string name) returns (string)
+resolveSub(string name, string label) returns (string)
+getPrice(string name, uint8 numYears)</pre>
+    </article>
+
+    <article class="card span-12">
+      <h2>Canonical flow (copy)</h2>
+      <pre class="code" id="flowCode">export RPC_URL="https://sepolia.base.org"
+export CONTRACT="0x..."
+export PRIVATE_KEY="0x..."
+
+PRICE_WEI=$(cast call --rpc-url "$RPC_URL" "$CONTRACT" "getPrice(string,uint8)(uint256)" "alice" 1 | awk '{print $1}')
+cast send --rpc-url "$RPC_URL" --private-key "$PRIVATE_KEY" "$CONTRACT" "register(string,uint8)" "alice" 1 --value "$PRICE_WEI"
+cast send --rpc-url "$RPC_URL" --private-key "$PRIVATE_KEY" "$CONTRACT" "setCID(string,string)" "alice" "bafy..."
+
+curl -i https://alice.ipns.io/</pre>
+      <div class="controls" style="margin-top:10px;">
+        <button id="copyBtn">Copy flow</button>
+      </div>
+      <p class="muted" id="copyOut" style="margin-top:8px;"></p>
+    </article>
+
+    <article class="card span-12">
+      <h3>Trust model</h3>
+      <p class="muted">Onchain registry is authority for name ownership + name→CID state. Gateway is a convenience delivery layer for standard browsers. Keep gateway code open and portable.</p>
+    </article>
+  </section>
+
+  <p class="footer">docs build timestamp: <span data-now></span></p>
+</main>
+<script src="../assets/app.js"></script>
+<script>
+document.getElementById('copyBtn').addEventListener('click', async () => {
+  const text = document.getElementById('flowCode').textContent;
+  const out = document.getElementById('copyOut');
+  try {
+    await navigator.clipboard.writeText(text);
+    out.innerHTML = '<span class="ok">copied to clipboard</span>';
+  } catch (_) {
+    out.innerHTML = '<span class="warn">clipboard blocked; copy manually</span>';
+  }
+});
+</script>
+</body>
+</html>

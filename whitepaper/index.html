@@ -1,0 +1,859 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>IPNS.io — A Naming Protocol for IPFS Content</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:ital,wght@0,300;0,400;0,600;1,300;1,400&family=Space+Mono:wght@400;700&display=swap');
+
+  :root {
+    --bg: #0a0a0a;
+    --fg: #b0b0b0;
+    --green: #00ff41;
+    --green-dim: #00cc33;
+    --green-glow: rgba(0,255,65,0.15);
+    --cyan: #00e5ff;
+    --amber: #ffb000;
+    --pink: #f9a8d4;
+    --muted: #555;
+    --border: #1a1a1a;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  html { scrollbar-width: none; }
+
+  body {
+    background: var(--bg);
+    color: var(--fg);
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 15px;
+    line-height: 1.85;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .paper {
+    max-width: 720px;
+    margin: 0 auto;
+    padding: 80px 24px 120px;
+  }
+
+  /* Header */
+  .header {
+    text-align: center;
+    margin-bottom: 80px;
+  }
+
+  .logo {
+    color: var(--green);
+    font-family: 'Space Mono', monospace;
+    font-size: 12px;
+    line-height: 1.2;
+    white-space: pre;
+    display: inline-block;
+    text-shadow: 0 0 10px var(--green-glow), 0 0 40px rgba(0,255,65,0.08);
+    margin-bottom: 40px;
+  }
+
+  .title {
+    font-size: 20px;
+    font-weight: 600;
+    color: #e0e0e0;
+    letter-spacing: 1px;
+    margin-bottom: 12px;
+  }
+
+  .subtitle {
+    font-size: 13px;
+    color: var(--muted);
+    font-weight: 300;
+  }
+
+  .meta {
+    margin-top: 40px;
+    font-size: 11px;
+    color: var(--muted);
+    letter-spacing: 2px;
+    text-transform: uppercase;
+  }
+
+  .open-app-fixed {
+    position: fixed;
+    top: 14px;
+    right: 16px;
+    z-index: 1000;
+    display: inline-block;
+    border: 1px solid var(--green-dim);
+    color: var(--green);
+    text-decoration: none;
+    font-size: 12px;
+    letter-spacing: 1px;
+    padding: 10px 14px;
+    background: rgba(10, 10, 10, 0.92);
+    backdrop-filter: blur(2px);
+  }
+
+  .open-app-fixed:hover {
+    background: rgba(0, 255, 65, 0.1);
+  }
+
+  .cta-btn {
+    display: inline-block;
+    border: 1px solid var(--green-dim);
+    color: var(--green);
+    text-decoration: none;
+    font-size: 12px;
+    letter-spacing: 1px;
+    padding: 10px 14px;
+  }
+
+  .cta-btn:hover {
+    background: rgba(0, 255, 65, 0.1);
+  }
+
+  /* Section numbering */
+  .section-num {
+    color: var(--green);
+    font-size: 11px;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    margin-bottom: 8px;
+    display: block;
+  }
+
+  h2 {
+    font-size: 16px;
+    font-weight: 600;
+    color: #e0e0e0;
+    margin-bottom: 24px;
+    letter-spacing: 0.5px;
+  }
+
+  .section {
+    margin-bottom: 64px;
+  }
+
+  p {
+    margin-bottom: 20px;
+    font-weight: 300;
+  }
+
+  .highlight {
+    color: var(--green);
+  }
+
+  .highlight-cyan {
+    color: var(--cyan);
+  }
+
+  .highlight-amber {
+    color: var(--amber);
+  }
+
+  em {
+    color: #d0d0d0;
+    font-style: italic;
+  }
+
+  strong {
+    color: #e0e0e0;
+    font-weight: 600;
+  }
+
+  /* Code / terminal blocks */
+  .code-block {
+    background: #111;
+    border: 1px solid var(--border);
+    border-radius: 2px;
+    padding: 20px;
+    margin: 24px 0;
+    font-size: 13px;
+    line-height: 1.6;
+    overflow-x: auto;
+    white-space: pre;
+    color: var(--fg);
+  }
+
+  .code-block .comment { color: var(--muted); font-style: italic; }
+  .code-block .keyword { color: var(--cyan); }
+  .code-block .str { color: var(--pink); }
+  .code-block .func { color: var(--green); }
+  .code-block .type { color: var(--amber); }
+
+  /* Diagrams / comparison */
+  .diagram {
+    background: #0d0d0d;
+    border: 1px solid var(--border);
+    border-radius: 2px;
+    padding: 24px;
+    margin: 24px 0;
+    font-size: 13px;
+    line-height: 1.8;
+    white-space: pre;
+    font-family: 'Space Mono', monospace;
+    color: var(--muted);
+    overflow-x: auto;
+  }
+
+  .diagram .label { color: var(--amber); }
+  .diagram .arrow { color: var(--green); }
+  .diagram .dim { color: #333; }
+  .diagram .bright { color: #e0e0e0; }
+
+  /* Comparison table */
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 24px 0;
+    font-size: 13px;
+  }
+
+  th {
+    text-align: left;
+    padding: 10px 12px;
+    border-bottom: 1px solid #333;
+    color: var(--muted);
+    font-weight: 400;
+    font-size: 11px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+  }
+
+  td {
+    padding: 10px 12px;
+    border-bottom: 1px solid var(--border);
+    font-weight: 300;
+  }
+
+  td.dns { color: var(--muted); }
+  td.ipns { color: var(--green); }
+  td.tinyurl { color: var(--amber); }
+
+  /* Dividers */
+  .divider {
+    border: none;
+    border-top: 1px solid var(--border);
+    margin: 64px 0;
+  }
+
+  .ascii-divider {
+    text-align: center;
+    color: #222;
+    font-size: 12px;
+    margin: 48px 0;
+    letter-spacing: 4px;
+  }
+
+  /* Blockquote */
+  blockquote {
+    border-left: 2px solid var(--green-dim);
+    padding-left: 20px;
+    margin: 24px 0;
+    color: #888;
+    font-style: italic;
+    font-weight: 300;
+  }
+
+  /* Footnotes */
+  .footnote {
+    font-size: 12px;
+    color: var(--muted);
+    margin-top: 64px;
+    padding-top: 24px;
+    border-top: 1px solid var(--border);
+    font-weight: 300;
+  }
+
+  .footnote p {
+    margin-bottom: 8px;
+  }
+
+  /* Lists */
+  ul {
+    margin: 16px 0 20px 24px;
+    font-weight: 300;
+  }
+
+  li {
+    margin-bottom: 8px;
+    padding-left: 4px;
+  }
+
+  li::marker {
+    color: var(--green-dim);
+  }
+
+  /* Inline code */
+  code {
+    background: #151515;
+    padding: 2px 6px;
+    border-radius: 2px;
+    font-size: 13px;
+    color: var(--cyan);
+  }
+
+  /* Links */
+  a {
+    color: var(--green);
+    text-decoration: none;
+  }
+
+  a:hover {
+    text-decoration: underline;
+  }
+
+  /* Responsive */
+  @media (max-width: 600px) {
+    .paper { padding: 40px 16px 80px; }
+    .logo { font-size: 9px; }
+    body { font-size: 14px; }
+    .code-block, .diagram { font-size: 11px; padding: 14px; }
+    .open-app-fixed { top: 10px; right: 10px; padding: 8px 10px; font-size: 11px; }
+  }
+</style>
+</head>
+<body>
+<a class="open-app-fixed" href="https://www.ipns.io/">Open app</a>
+<div class="paper">
+
+  <!-- Header -->
+  <div class="header">
+    <a href="https://www.ipns.io/" aria-label="Open app">
+    <pre class="logo">    __  ____  _  ______   _     
+   / / / __ \/ |/ / __/  (_)__  
+  / / / /_/ /    /\ \   / / _ \ 
+ /_/ / .___/_/|_/___/_ /_/\___/ 
+    /_/           /___/         </pre>
+    </a>
+    <div class="title">A Naming Protocol for IPFS Content</div>
+    <div class="subtitle">Open protocol. Open source. $1 names.</div>
+    <div class="meta">February 2026</div>
+  </div>
+
+  <hr class="divider">
+
+  <!-- 0: Abstract -->
+  <div class="section">
+    <span class="section-num">00 — Abstract</span>
+    <h2>IPFS solved storage. Nobody solved sharing.</h2>
+    <p>
+      IPFS made content permanent, distributed, and verifiable. It did not make content shareable. A CID like <code>bafybeigdyrzt5sfp7udm7hu76uh7y26nf3efuylqabf3oclgtqy55fbzdi</code> is a cryptographic proof that a piece of content exists and hasn't been altered. It's also a 59-character string that no human will ever remember, type, or text to a friend.
+    </p>
+    <p>
+      Right now, if you want to share IPFS content with a clean URL, you have two options. You can use a public gateway link like <code>https://ipfs.io/ipfs/bafybei...</code>, which is long, ugly, and dependent on a single gateway operator. Or you can register a traditional domain, run a server, configure DNS, and set up a reverse proxy to fetch from IPFS. That's expensive, complex, and reintroduces every centralized dependency you were trying to avoid.
+    </p>
+    <p>
+      IPNS.io is an open naming protocol that maps human-readable names to IPFS content identifiers. The protocol is a single smart contract on Base. The name registry is public, permissionless, and readable by anyone. The reference gateway at <code>ipns.io</code> resolves names and serves content over HTTPS, but it's not the protocol. It's one implementation of the protocol. Anyone can run a gateway. The entire codebase is open source.
+    </p>
+    <p>
+      The result: <code>bafybeigdyrzt5sfp7udm7hu76uh7y26nf3</code> becomes <span class="highlight">alice.ipns.io</span>. Register a name, point it at a CID, share the link. That's it.
+    </p>
+  </div>
+
+  <div class="ascii-divider">── · · · ──</div>
+
+  <!-- 1: The Problem -->
+  <div class="section">
+    <span class="section-num">01 — The Problem</span>
+    <h2>Content-addressed, human-unreadable</h2>
+    <p>
+      IPFS addresses content by <em>what it is</em>, not <em>where it lives</em>. A CID is a cryptographic hash of the content itself. This means the same content always produces the same CID, any node on the network can serve it, and integrity is guaranteed by the hash. Content exists on IPFS without needing a specific server, a specific IP address, or a specific location.
+    </p>
+    <p>
+      This is a powerful property, but it creates a practical problem. CIDs are designed for machines, not people. They're long, random-looking strings with no semantic meaning. You can't put one on a business card. You can't read one over the phone. You can't tell a friend "check out my site at bafybei-something-something." The permanence and distribution of IPFS are useless if nobody can find your content.
+    </p>
+    <p>
+      Existing naming systems don't solve this well. ENS lets you map a <code>.eth</code> name to an IPFS hash, but it costs $5-640/year depending on name length, runs on Ethereum L1 with $5-50+ gas per transaction, and requires a special gateway or browser extension to resolve. Unstoppable Domains offers one-time purchases but also requires extensions. Traditional DNS works in every browser but requires you to run a server, which defeats the serverless nature of IPFS.
+    </p>
+    <p>
+      The IPFS ecosystem has permanent, distributed, verifiable content with no simple, affordable, browser-native way to name it.
+    </p>
+  </div>
+
+  <div class="ascii-divider">── · · · ──</div>
+
+  <!-- 2: The Protocol -->
+  <div class="section">
+    <span class="section-num">02 — The Protocol</span>
+    <h2>One contract. One mapping. Name to content.</h2>
+    <p>
+      The IPNS.io protocol is a smart contract on Base that stores a single mapping: <span class="highlight">name → CID</span>. That's the entire protocol.
+    </p>
+
+    <div class="code-block"><span class="comment">// The core of the registry (simplified excerpt)</span>
+<span class="keyword">struct</span> <span class="type">Record</span> {
+    <span class="type">address</span> owner;
+    <span class="type">string</span>  cid;
+    <span class="type">uint64</span>  expires; <span class="comment">// + grace period</span>
+}
+
+<span class="comment">// key = keccak256(normalized name)</span>
+<span class="keyword">mapping</span>(<span class="type">bytes32</span> => <span class="type">Record</span>) <span class="keyword">public</span> names;
+
+<span class="keyword">function</span> <span class="func">register</span>(<span class="type">string</span> name, <span class="type">uint8</span> years) <span class="keyword">external payable</span>;
+<span class="keyword">function</span> <span class="func">setCID</span>(<span class="type">string</span> name, <span class="type">string</span> cid) <span class="keyword">external</span>;
+<span class="keyword">function</span> <span class="func">resolve</span>(<span class="type">string</span> name) <span class="keyword">external view returns</span> (<span class="type">string</span>);
+<span class="keyword">function</span> <span class="func">renew</span>(<span class="type">string</span> name, <span class="type">uint8</span> years) <span class="keyword">external payable</span>;
+<span class="keyword">function</span> <span class="func">transfer</span>(<span class="type">string</span> name, <span class="type">address</span> to) <span class="keyword">external</span>;</div>
+
+    <p>
+      A user calls <code>register("alice", 1)</code> with a payment on Base. The name is theirs for one year. They call <code>setCID("alice", "bafybei...")</code> to point it at IPFS content. Anyone in the world can call <code>resolve("alice")</code> to get the current CID.
+    </p>
+    <p>
+      The contract handles registration, renewal, CID updates, ownership transfers, and name resolution. Names are case-insensitive, alphanumeric with hyphens, 1-63 characters. A 90-day grace period protects owners from accidental expiration. After the grace period, expired names return to the open pool.
+    </p>
+    <p>
+      The contract is the protocol. Everything else is implementation.
+    </p>
+  </div>
+
+  <div class="ascii-divider">── · · · ──</div>
+
+  <!-- 3: The Gateway -->
+  <div class="section">
+    <span class="section-num">03 — The Gateway</span>
+    <h2>A reference implementation, not the product</h2>
+    <p>
+      A gateway is a server that reads the IPNS.io contract, fetches the corresponding IPFS content, and serves it over HTTPS. The reference gateway at <code>ipns.io</code> uses wildcard DNS so that <code>alice.ipns.io</code> resolves the name "alice" from the contract, retrieves the CID from IPFS, and delivers the content to any browser.
+    </p>
+
+    <div class="diagram"><span class="label">Resolution path:</span>
+
+<span class="bright">user</span> <span class="arrow">→</span> alice.ipns.io <span class="arrow">→</span> gateway reads contract
+  <span class="arrow">→</span> CID <span class="arrow">→</span> IPFS network <span class="arrow">→</span> <span class="bright">content</span></div>
+
+    <p>
+      The gateway is intentionally thin. It's a read-only proxy that translates between the on-chain registry and the browser. It doesn't store names. It doesn't store content. It reads from two public sources (Base and IPFS) and serves the result.
+    </p>
+    <p>
+      Trust model, explicitly: a browser user trusts the gateway they are using for delivery. A malicious gateway could censor or alter HTTP responses. The protocol still protects ownership and name->CID state on-chain, but the final delivery hop is a trust point. The mitigation is protocol-level portability: use subdomain isolation, open source the gateway, and make switching gateways trivial.
+    </p>
+    <p>
+      The gateway code is fully open source. Anyone can clone the repository, point it at the same contract, and run their own gateway on their own domain. A community member could run <code>alice.ipns-gateway.org</code>. A company could run <code>alice.names.example.com</code>. They all read the same public registry and serve the same content. Different doors, same room.
+    </p>
+    <p>
+      This is a deliberate architectural choice. The protocol (the contract) is the permanent, shared layer that stores all the data. Gateways are interchangeable, disposable, and commoditized. If the reference gateway at <code>ipns.io</code> goes down, the protocol keeps running. Every name, every CID mapping, every ownership record is on-chain and unaffected. A new gateway can be deployed in minutes using the open source code.
+    </p>
+  </div>
+
+  <div class="ascii-divider">── · · · ──</div>
+
+  <!-- 03a: Gateway Resolution Spec -->
+  <div class="section">
+    <span class="section-num">03a — Gateway Resolution Spec (v0)</span>
+    <h2>How a gateway resolves names</h2>
+    <p>
+      The protocol is a contract. A gateway is just a reader. To make gateways interchangeable, the resolution algorithm must be explicit.
+      This section defines <strong>Gateway Resolution Spec v0</strong>: the minimal behavior required for a compatible gateway.
+    </p>
+
+    <div class="code-block"><span class="comment">// Inputs</span>
+HTTP request:
+  Host: alice.ipns.io
+  Path: /docs/index.html
+
+Environment:
+  BASE_RPC_URL
+  CONTRACT_ADDRESS
+  IPFS_FETCH_MODE = local | upstream
+
+<span class="comment">// v0 algorithm (subdomains)</span>
+1) Parse host:
+   - If Host == ipns.io: resolve via path mode (see below)
+   - If Host matches *.ipns.io:
+       a) Split labels left of ipns.io
+       b) name = last label (e.g. alice)
+       c) sub  = optional label before it (e.g. blog) <span class="comment">// v0 supports blog.alice</span>
+
+2) Normalize (must match contract):
+   - lowercase
+   - allowed: [a-z0-9-]
+   - no leading/trailing hyphen
+   - length 1..63
+
+3) Resolve:
+   - If sub exists: call resolveSub(name, sub) <span class="comment">// returns sub CID or parent CID fallback</span>
+   - Else: call resolve(name)
+   - If empty: 404 (name not found / expired / no CID)
+
+4) Fetch bytes:
+   - If Path ends with "/": append "index.html"
+   - Fetch from IPFS by CID + path
+   - Return 404 if missing
+
+5) Serve:
+   - Set Content-Type by file extension (html/css/js/png/svg/json/woff2/...)
+   - Add conservative caching for immutable CIDs (Cache-Control: public, max-age=...)
+
+<span class="comment">// v0 algorithm (paths)</span>
+Request: https://ipns.io/alice/docs/
+  - first path segment is name ("alice")
+  - remaining path is file path ("docs/index.html")</div>
+
+    <p>
+      Gateways may add optimizations (caching, prefetching, pinning policies) as long as resolution remains faithful to the protocol state and content addressing.
+    </p>
+  </div>
+
+  <div class="ascii-divider">── · · · ──</div>
+
+  <!-- 4: Honest about DNS -->
+  <div class="section">
+    <span class="section-num">04 — The Bridge</span>
+    <h2>Yes, the gateway uses DNS</h2>
+    <p>
+      The obvious question: doesn't the gateway depend on traditional DNS? Yes. The domain <code>ipns.io</code> is registered through a traditional registrar, resolved through traditional nameservers, and served from a traditional server. The gateway is a bridge between the IPNS.io protocol and legacy browsers that only know how to speak HTTP.
+    </p>
+    <p>
+      IPNS.io is not a DNS replacement. It is a naming protocol for IPFS content that uses DNS as a compatibility layer. This is similar to how email uses physical cables laid by telecom companies. The cables carry email, but email is not "the same as" the postal service. The underlying transport doesn't define the system running on top of it.
+    </p>
+    <p>
+      What DNS controls is narrow: whether the domain <code>ipns.io</code> resolves to a server. What DNS does <em>not</em> control is the registry (on-chain, public), the content (on IPFS, distributed), or the protocol (a smart contract, immutable). If the <code>ipns.io</code> domain disappeared tomorrow, the URLs would break, but the data would be intact and any new gateway on any new domain could restore access.
+    </p>
+    <p>
+      As browsers add native support for on-chain resolution and IPFS content (Brave already supports IPFS natively), the gateway becomes less necessary over time. But we're not waiting for that. The gateway exists so that IPNS.io works in Chrome, Safari, and Firefox today, without extensions.
+    </p>
+  </div>
+
+  <div class="ascii-divider">── · · · ──</div>
+
+  <!-- 5: Not a tinyurl, not crypto DNS -->
+  <div class="section">
+    <span class="section-num">05 — What This Is Not</span>
+    <h2>Not a URL shortener. Not crypto DNS.</h2>
+    <p>
+      Two reasonable objections come up often. Here are honest answers.
+    </p>
+    <p>
+      <strong>"This is just a URL shortener for IPFS."</strong> A URL shortener creates a random, disposable redirect that the service owns. If the service dies, every link dies with it. You can't choose the short URL, you can't update where it points, and it doesn't represent an identity.
+    </p>
+    <p>
+      IPNS.io names are chosen by the registrant, owned on-chain by the registrant's wallet, updatable by the registrant at any time, and transferable. <code>alice.ipns.io</code> is a persistent identity that you own and can point at different content over time. <code>bit.ly/x7Kp2</code> is a throwaway redirect that Bitly owns. The difference is the same as between a domain name and a shortened link. Nobody puts a bit.ly URL on a business card.
+    </p>
+    <p>
+      <strong>"This is just DNS on a blockchain."</strong> Crypto DNS already exists. ENS is a general-purpose name registry on Ethereum that can point to addresses, IP addresses, content hashes, or arbitrary records. It's a Swiss Army knife.
+    </p>
+    <p>
+      <strong>"Is this the same as native IPNS?"</strong> Not exactly. Native IPNS uses signed records keyed by libp2p identities and distributed through DHT/PubSub. IPNS.io uses an on-chain name registry on Base and browser-compatible HTTPS gateways. They are complementary. Native IPNS is transport-level naming in the IPFS/libp2p stack; IPNS.io is a public registry optimized for browser delivery and simple economics.
+    </p>
+    <p>
+      IPNS.io does one thing: maps names to IPFS content. That constraint is the point. Because the only thing behind the name is IPFS content, you don't need a server. Because you don't need a server, you don't need hosting, SSL, uptime management, or any of the infrastructure that sits between a DNS name and the content it serves. ENS still expects infrastructure behind the name. IPNS.io expects a CID and nothing else.
+    </p>
+
+    <table>
+      <thead>
+        <tr>
+          <th></th>
+          <th>url shortener</th>
+          <th>ens</th>
+          <th>ipns.io</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>you own the name</td>
+          <td class="tinyurl">no</td>
+          <td class="dns">yes</td>
+          <td class="ipns">yes</td>
+        </tr>
+        <tr>
+          <td>you choose the name</td>
+          <td class="tinyurl">sometimes</td>
+          <td class="dns">yes</td>
+          <td class="ipns">yes</td>
+        </tr>
+        <tr>
+          <td>updatable</td>
+          <td class="tinyurl">no</td>
+          <td class="dns">yes</td>
+          <td class="ipns">yes</td>
+        </tr>
+        <tr>
+          <td>works in any browser</td>
+          <td class="tinyurl">yes</td>
+          <td class="dns">no (needs extension)</td>
+          <td class="ipns">yes</td>
+        </tr>
+        <tr>
+          <td>requires a server</td>
+          <td class="tinyurl">no</td>
+          <td class="dns">usually</td>
+          <td class="ipns">no (publisher)</td>
+        </tr>
+        <tr>
+          <td>survives provider shutdown</td>
+          <td class="tinyurl">no</td>
+          <td class="dns">yes (data on-chain)</td>
+          <td class="ipns">yes (data on-chain)</td>
+        </tr>
+        <tr>
+          <td>5+ char name cost</td>
+          <td class="tinyurl">free</td>
+          <td class="dns">$5/yr + L1 gas</td>
+          <td class="ipns">$1/yr + negligible gas</td>
+        </tr>
+        <tr>
+          <td>3 char name cost</td>
+          <td class="tinyurl">free</td>
+          <td class="dns">$640/yr + L1 gas</td>
+          <td class="ipns">$10/yr + negligible gas</td>
+        </tr>
+        <tr>
+          <td>focus</td>
+          <td class="tinyurl">any URL</td>
+          <td class="dns">general-purpose naming</td>
+          <td class="ipns">IPFS content only</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="ascii-divider">── · · · ──</div>
+
+  <!-- 6: Agents -->
+  <div class="section">
+    <span class="section-num">06 — Agents</span>
+    <h2>The users that can't use anything else</h2>
+    <p>
+      There is a class of user that cannot register a traditional domain. Cannot spin up and maintain a server. Cannot pass identity verification with a registrar. Cannot agree to Terms of Service. That class is autonomous AI agents, and they are an increasingly significant presence on the web.
+    </p>
+    <p>
+      An autonomous agent that needs to deploy a product today faces a bootstrapping problem. It needs a human to register a domain, configure a server, and manage DNS on its behalf. Or it needs to burn money continuously on hosted infrastructure that requires an account, a credit card, and human oversight.
+    </p>
+    <p>
+      IPNS.io gives agents a direct path to the web. An agent with a wallet on Base can call the contract, register a name, set a CID, and have a product live at a public URL. No human in the loop. No identity verification. No server the agent must operate. The entire deployment is two transactions and a pin command.
+    </p>
+
+    <div class="diagram"><span class="label">Agent deployment:</span>
+
+<span class="bright">agent</span> <span class="arrow">→</span> pin content to IPFS
+  <span class="arrow">→</span> call register() on Base
+  <span class="arrow">→</span> <span class="bright">product is live at name.ipns.io</span>
+
+<span class="dim">2 steps. 0 human dependencies. $1/year. No server the agent must operate.</span></div>
+
+    <p>
+      For agents operating under economic pressure, where resources spent on infrastructure are resources not spent on earning revenue, this matters. An agent using traditional hosting burns money every hour keeping a server alive. An agent using IPNS.io pays $1/year and the content stays accessible as long as it's pinned on IPFS.
+    </p>
+    <p>
+      The protocol doesn't require agents. It works just as well for a human sharing a portfolio or a developer hosting a dApp frontend. But agents are the user class that has no alternative. They can't use DNS. They can use IPNS.io.
+    </p>
+  </div>
+
+  <div class="ascii-divider">── · · · ──</div>
+
+  <!-- 7: What it can serve -->
+  <div class="section">
+    <span class="section-num">07 — Capabilities</span>
+    <h2>Anything that runs in a browser</h2>
+    <p>
+      IPNS.io serves anything client-side. The gateway delivers files from IPFS over HTTPS. The browser executes them locally. This includes static websites, single-page applications (React, Vue, Svelte), client-side web apps, dApp frontends that call smart contracts directly, documentation, landing pages, and any JavaScript that calls external APIs.
+    </p>
+    <p>
+      The limitation is server-side code. No backend API endpoints, no database queries, no server-side rendering. The gateway is a file server, not an application server.
+    </p>
+    <p>
+      In practice, this covers most of what people and agents want to put on the web. A React app calling a smart contract needs no backend. A JS app calling an inference API needs no backend. A static site generator's output is pure HTML/CSS/JS. For applications that do need a backend, IPNS.io handles the frontend while the API lives elsewhere.
+    </p>
+  </div>
+
+  <div class="ascii-divider">── · · · ──</div>
+
+  <!-- 8: Economics -->
+  <div class="section">
+    <span class="section-num">08 — Economics</span>
+    <h2>$1 names on a $0.01 chain</h2>
+    <p>
+      The registry lives on <span class="highlight-amber">Base</span>, Coinbase's L2. Transaction costs are fractions of a cent. Registration pricing is tiered by name length to reflect scarcity:
+    </p>
+
+    <table>
+      <thead>
+        <tr>
+          <th>length</th>
+          <th>price / year</th>
+          <th>ens equivalent</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>1 character</td>
+          <td class="ipns">$50</td>
+          <td class="dns">not available</td>
+        </tr>
+        <tr>
+          <td>2 characters</td>
+          <td class="ipns">$25</td>
+          <td class="dns">not available</td>
+        </tr>
+        <tr>
+          <td>3 characters</td>
+          <td class="ipns">$10</td>
+          <td class="dns">$640</td>
+        </tr>
+        <tr>
+          <td>4 characters</td>
+          <td class="ipns">$5</td>
+          <td class="dns">$160</td>
+        </tr>
+        <tr>
+          <td>5+ characters</td>
+          <td class="ipns">$1</td>
+          <td class="dns">$5</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <p>
+      The contract is permissionless. Anyone, human or agent, can register, renew, update, and transfer names by calling the contract with a wallet. No account. No KYC. No identity verification. The only requirement is ETH on Base.
+    </p>
+    <p>
+      Registration fees go to the protocol treasury regardless of which gateway a user came through. Because the protocol is open and gateways are interchangeable, every third-party gateway is a distribution channel. More gateways means more users means more registrations. The protocol benefits from adoption at every layer.
+    </p>
+  </div>
+
+  <div class="ascii-divider">── · · · ──</div>
+
+  <!-- 9: Open Source and Resilience -->
+  <div class="section">
+    <span class="section-num">09 — Open Source</span>
+    <h2>Your data isn't trapped</h2>
+    <p>
+      The entire IPNS.io stack is open source: the smart contract, the gateway, and the resolution logic. This is not incidental. It's core to the architecture.
+    </p>
+    <p>
+      Open source means more than "source available." It means anyone can reproduce the system and verify they are running the same protocol:
+    </p>
+    <ul>
+      <li><strong>Contract source</strong> (Apache-2.0): <code>github.com/ipns-io/ipns-contracts</code></li>
+      <li><strong>Gateway reference implementation</strong> (Apache-2.0): <code>github.com/ipns-io/ipns-gateway</code></li>
+      <li><strong>Protocol + gateway spec</strong> (Apache-2.0): <code>github.com/ipns-io/spec</code></li>
+    </ul>
+    <p>
+      Reference gateway quickstart:
+    </p>
+    <div class="code-block"><span class="comment"># self-host a compatible gateway</span>
+docker run --rm -p 8787:8787 \\
+  -e BASE_RPC_URL="https://..." \\
+  -e CONTRACT_ADDRESS="0x..." \\
+  -e IPFS_FETCH_MODE="upstream" \\
+  ipns/gateway:latest</div>
+    <p>
+      Deployments (source of truth):
+    </p>
+    <div class="code-block"><span class="comment"># Base mainnet (planned)</span>
+contract: 0x... <span class="comment">(verified)</span>
+commit:   ...   <span class="comment">(tagged release)</span>
+owner:    0x... <span class="comment">(multisig)</span></div>
+    <p>
+      Governance: the protocol contract is immutable. Administrative controls (pricing tiers, reserved infra labels, coupon signer) are held by a multisig and can be placed behind a timelock. The goal is a stable registry with minimal, transparent knobs.
+    </p>
+    <p>
+      <strong>Governance and mutability, explicitly:</strong>
+    </p>
+    <ul>
+      <li><strong>Locked at deploy:</strong> ownership semantics, renewal/expiry rules, grace period behavior, and resolution logic.</li>
+      <li><strong>Owner-governed parameters:</strong> length-tier pricing, reserved-label list, treasury address, and coupon signer.</li>
+      <li><strong>Operational model:</strong> owner should be a multisig, with timelock and public notice for parameter changes.</li>
+      <li><strong>User trust guarantee:</strong> every change is on-chain and auditable; no hidden backend mutation path exists.</li>
+    </ul>
+    <p>
+      Early-stage governance is used for market calibration and anti-squatting policy. Long-term, the objective is to minimize mutable knobs and freeze stable economics once real usage data is sufficient.
+    </p>
+    <p>
+      The contract is deployed on Base and immutable. Every name registration, CID mapping, and ownership record is public and verifiable. The gateway is a Docker container with a README. Clone the repo, point it at the contract, run it on your own domain in minutes.
+    </p>
+    <p>
+      If IPNS.io the company disappeared tomorrow, here's what happens. The URLs at <code>*.ipns.io</code> stop working because the domain isn't being renewed. The protocol keeps running. Every name, every mapping, every piece of content is exactly where it was. Anyone who cares enough to run a gateway can deploy one on a new domain and restore access to every name in the registry. Not theoretically. Not "someone could rebuild it." The code is public, the data is public, the instructions are in the README.
+    </p>
+    <p>
+      Compare this to any proprietary naming service: if the company dies, the database dies with it. There is no recovery path. With IPNS.io, the data layer is permanently separated from the service layer. The service can fail without the data failing. That's not magic. It's just what happens when you put the registry on a public blockchain and open source the gateway.
+    </p>
+  </div>
+
+  <div class="ascii-divider">── · · · ──</div>
+
+  <!-- 10: The Stack -->
+  <div class="section">
+    <span class="section-num">10 — The Stack</span>
+    <h2>Three layers</h2>
+
+    <div class="diagram"><span class="label">1. Protocol</span>  <span class="dim">(smart contract on Base)</span>
+   Name registry storing name → CID mappings.
+   Permissionless. Immutable. Public.
+
+<span class="label">2. Content</span>  <span class="dim">(IPFS network)</span>
+   Distributed storage addressed by content hash.
+   No single server. Persists across nodes.
+
+<span class="label">3. Gateway</span>  <span class="dim">(open source, anyone can run one)</span>
+   Reads protocol, fetches from IPFS, serves over HTTPS.
+   A bridge to legacy browsers. Replaceable. Commoditized.</div>
+
+    <p>
+      The protocol is the shared, permanent layer. The content network is the storage layer. Gateways are interchangeable readers. Each layer is independent. Each layer is open.
+    </p>
+    <p>
+      For a developer or agent, deploying content requires two actions: pin to IPFS, register on Base. Everything else (resolution, delivery, caching) is handled by the protocol and whatever gateway the user accesses.
+    </p>
+    <p>
+      Compatibility roadmap: support DNSLink resolution on gateways, maintain subdomain-first delivery for origin isolation, and add optional native IPNS resolution/import as a gateway feature. Core protocol stays minimal: name ownership and name->CID state on-chain.
+    </p>
+  </div>
+
+  <div class="ascii-divider">── · · · ──</div>
+
+  <!-- 11: Current Trust Assumptions -->
+  <div class="section">
+    <span class="section-num">11 — Current Trust Assumptions</span>
+    <h2>What is locked vs what is still operator-run</h2>
+    <p>
+      Gateway resolution is reproducible from public onchain state. The contract is the source of truth for name to CID records, ownership, and expiry.
+    </p>
+    <p>
+      Current production gateway operations are operator-run for reliability and speed. This is a delivery trust point, not a registry trust point.
+    </p>
+    <p>
+      Any developer can run a compatible gateway against the same contract and resolve the same names. Gateway portability is a protocol requirement.
+    </p>
+    <p>
+      Near-term roadmap: self-hosted pinning path, more independent gateway operators, and continued minimization of mutable operational dependencies.
+    </p>
+  </div>
+
+  <div class="ascii-divider">── · · · ──</div>
+
+  <!-- 11: Conclusion -->
+  <div class="section">
+    <span class="section-num">12 — Conclusion</span>
+    <h2>Names for IPFS. That's it.</h2>
+    <p>
+      IPFS made content permanent. It didn't make content shareable. IPNS.io is the naming layer that closes that gap: an open protocol that maps human-readable names to IPFS content, on-chain, for $1/year, accessible in any browser.
+    </p>
+    <p>
+      The protocol is a smart contract. The gateway is open source. The data is public. The names are yours.
+    </p>
+    <p>
+      Pin your content. Name it. Share the link.
+    </p>
+    <p>
+      <span class="highlight">alice.ipns.io</span>
+    </p>
+  </div>
+
+  <hr class="divider">
+
+  <!-- Footer -->
+  <div class="footnote">
+    <p>IPNS.io: Open naming protocol for IPFS content on Base.</p>
+    <p>Contract, gateway, and protocol spec: <span style="color: var(--cyan);">open source</span></p>
+    <p>February 2026</p>
+    <p style="margin-top: 16px;">
+      <a class="cta-btn" href="https://www.ipns.io/">Create your name</a>
+    </p>
+  </div>
+
+</div>
+</body>
+</html>

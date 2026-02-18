@@ -1,0 +1,1196 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ipns — name your content. own it forever.</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&family=Space+Mono:wght@400;700&family=Fira+Code:wght@400;700&display=swap');
+
+  :root {
+    --green: #00ff41;
+    --green-dim: #00cc33;
+    --green-glow: #00ff4180;
+    --amber: #ffb000;
+    --amber-dim: #cc8d00;
+    --cyan: #00e5ff;
+    --red: #ff3c3c;
+    --bg: #0a0a0a;
+    --bg-light: #111111;
+    --border: #1a1a1a;
+    --text: #b0b0b0;
+    --text-dim: #555;
+    --scanline: rgba(0, 255, 65, 0.015);
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  html {
+    scrollbar-width: none;
+  }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 14px;
+    line-height: 1.7;
+    overflow-x: hidden;
+    cursor: default;
+  }
+
+  /* CRT / scanline overlay */
+  body::before {
+    content: '';
+    position: fixed;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: repeating-linear-gradient(
+      0deg,
+      transparent,
+      transparent 2px,
+      var(--scanline) 2px,
+      var(--scanline) 4px
+    );
+    pointer-events: none;
+    z-index: 9999;
+  }
+
+  /* Flicker */
+  body::after {
+    content: '';
+    position: fixed;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: rgba(0, 255, 65, 0.01);
+    pointer-events: none;
+    z-index: 9998;
+    animation: flicker 0.15s infinite;
+  }
+
+  @keyframes flicker {
+    0% { opacity: 0.97; }
+    50% { opacity: 1; }
+    100% { opacity: 0.98; }
+  }
+
+  /* Reduce motion / flashing for accessibility */
+  @media (prefers-reduced-motion: reduce) {
+    body::before, body::after { display: none !important; }
+    * { animation: none !important; transition: none !important; scroll-behavior: auto !important; }
+    .cursor-blink { display: none !important; }
+  }
+
+  /* Glow text utility */
+  .glow { text-shadow: 0 0 8px var(--green-glow), 0 0 20px rgba(0,255,65,0.15); }
+  .glow-amber { text-shadow: 0 0 8px rgba(255,176,0,0.5), 0 0 20px rgba(255,176,0,0.15); }
+
+  /* Layout */
+  .container {
+    max-width: 760px;
+    margin: 0 auto;
+    padding: 0 24px;
+  }
+
+  /* Anchor targets: keep content from landing flush against the viewport top */
+  #search { scroll-margin-top: 22px; }
+
+  /* Top bar */
+  .topbar {
+    border-bottom: 1px solid var(--border);
+    padding: 12px 0;
+    font-size: 12px;
+    color: var(--text-dim);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  .topbar .status {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .topbar .dot {
+    width: 6px;
+    height: 6px;
+    background: var(--green);
+    border-radius: 50%;
+    box-shadow: 0 0 6px var(--green);
+    animation: pulse-dot 2s infinite;
+  }
+
+  @keyframes pulse-dot {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.4; }
+  }
+
+  .topbar a {
+    color: var(--text-dim);
+    text-decoration: none;
+    transition: color 0.2s;
+  }
+  .topbar a:hover { color: var(--green); }
+
+  /* Header / ASCII logo */
+  .header {
+    padding: 40px 0 32px;
+    text-align: center;
+  }
+
+  .ascii-logo {
+    color: var(--green);
+    font-family: 'Space Mono', monospace;
+    font-size: 12px;
+    line-height: 1.2;
+    letter-spacing: 0px;
+    white-space: pre;
+    display: inline-block;
+    text-shadow: 0 0 10px var(--green-glow), 0 0 40px rgba(0,255,65,0.08);
+    opacity: 0;
+    animation: fadeIn 0.8s 0.3s forwards;
+    margin: 0;
+    padding: 0;
+    background: none;
+    border: none;
+    overflow: visible;
+  }
+
+  @keyframes fadeIn {
+    to { opacity: 1; }
+  }
+
+  .tagline {
+    margin-top: 24px;
+    font-size: 13px;
+    color: var(--text-dim);
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    opacity: 0;
+    animation: fadeIn 0.6s 1.2s forwards;
+  }
+
+  /* Terminal section */
+  .terminal {
+    background: var(--bg-light);
+    border: 1px solid var(--border);
+    border-radius: 2px;
+    margin: 40px 0;
+    overflow: hidden;
+    opacity: 0;
+    animation: fadeIn 0.6s 1.6s forwards;
+  }
+
+  .terminal-bar {
+    background: #161616;
+    padding: 8px 14px;
+    font-size: 11px;
+    color: var(--text-dim);
+    display: flex;
+    justify-content: space-between;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .terminal-dots {
+    display: flex;
+    gap: 6px;
+  }
+
+  .terminal-dots span {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    border: 1px solid #333;
+  }
+
+  .terminal-dots span:nth-child(1) { background: #ff5f57; border-color: #e0443e; }
+  .terminal-dots span:nth-child(2) { background: #ffbd2e; border-color: #dea123; }
+  .terminal-dots span:nth-child(3) { background: #28c940; border-color: #1aab29; }
+
+  .terminal-body {
+    padding: 20px;
+    min-height: 200px;
+    overflow: hidden;
+    white-space: pre;
+    font-size: 13px;
+    line-height: 1.6;
+  }
+
+  .prompt { color: var(--cyan); }
+  .cmd { color: var(--green); }
+  .flag { color: var(--amber); }
+  .output { color: var(--text); }
+  .success { color: var(--green); }
+  .url { color: var(--amber); text-decoration: underline; }
+  .comment { color: var(--text-dim); font-style: italic; }
+  .keyword { color: var(--cyan); }
+  .contract-name { color: var(--green); font-weight: 700; }
+  .type { color: var(--amber); }
+  .param { color: #e0e0e0; }
+  .func { color: var(--green); }
+  .string { color: var(--cyan); }
+  .number { color: #c4b5fd; }
+
+  .cursor-blink {
+    display: inline-block;
+    width: 8px;
+    height: 15px;
+    background: var(--green);
+    vertical-align: text-bottom;
+    animation: blink 1s step-end infinite;
+    margin-left: 2px;
+  }
+
+  @keyframes blink {
+    50% { opacity: 0; }
+  }
+
+  /* Divider */
+  .divider {
+    border: none;
+    height: 1px;
+    background: var(--border);
+    margin: 48px 0;
+    position: relative;
+    opacity: 0;
+    animation: fadeIn 0.4s 2s forwards;
+  }
+
+  .divider::after {
+    content: '⟡';
+    position: absolute;
+    left: 50%;
+    top: -8px;
+    transform: translateX(-50%);
+    color: var(--text-dim);
+    background: var(--bg);
+    padding: 0 12px;
+    font-size: 12px;
+  }
+
+  /* Typed sections */
+  .section {
+    margin: 48px 0;
+    opacity: 0;
+  }
+
+  .section.visible {
+    animation: fadeIn 0.5s forwards;
+  }
+
+  .section-header {
+    color: var(--green);
+    font-weight: 700;
+    font-size: 12px;
+    letter-spacing: 4px;
+    text-transform: uppercase;
+    margin-bottom: 20px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .section-header::before {
+    content: '>';
+    color: var(--amber);
+  }
+
+  .section-header::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: var(--border);
+  }
+
+  .section p {
+    margin-bottom: 16px;
+    max-width: 600px;
+  }
+
+  .highlight {
+    color: var(--green);
+    font-weight: 500;
+  }
+
+  .highlight-amber {
+    color: var(--amber);
+    font-weight: 500;
+  }
+
+  /* The "how it works" flow */
+  .flow {
+    margin: 32px 0;
+    font-size: 13px;
+  }
+
+  .flow-step {
+    display: flex;
+    gap: 16px;
+    margin-bottom: 6px;
+    align-items: flex-start;
+  }
+
+  .flow-num {
+    color: var(--amber);
+    font-weight: 700;
+    min-width: 24px;
+    font-size: 12px;
+    padding-top: 1px;
+  }
+
+  .flow-text {
+    color: var(--text);
+  }
+
+  .flow-pipe {
+    color: var(--text-dim);
+    padding-left: 7px;
+    font-size: 11px;
+    margin-bottom: 6px;
+  }
+
+  /* Register box */
+  .register-box {
+    border: 1px solid var(--green-dim);
+    padding: 32px;
+    margin: 48px 0;
+    text-align: center;
+    position: relative;
+    opacity: 1;
+  }
+
+  .register-box.visible {
+    animation: none;
+  }
+
+  .register-box::before {
+    content: '[ REGISTER ]';
+    position: absolute;
+    top: -9px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: var(--bg);
+    padding: 0 16px;
+    color: var(--green);
+    font-size: 11px;
+    letter-spacing: 3px;
+    font-weight: 700;
+  }
+
+  .register-input-wrap {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0;
+    margin: 20px 0 16px;
+    font-size: 18px;
+  }
+
+  .register-input {
+    background: transparent;
+    border: none;
+    border-bottom: 1px solid var(--green-dim);
+    color: var(--green);
+    font-family: 'Space Mono', monospace;
+    font-size: 18px;
+    padding: 4px 2px;
+    width: 140px;
+    outline: none;
+    text-align: right;
+    caret-color: var(--green);
+  }
+
+  .register-input::placeholder {
+    color: #1a3d1f;
+  }
+
+  .register-input:focus {
+    border-bottom-color: var(--green);
+    box-shadow: 0 2px 8px rgba(0,255,65,0.1);
+  }
+
+  .register-suffix {
+    color: var(--text-dim);
+    font-family: 'Space Mono', monospace;
+    font-size: 18px;
+  }
+
+  .register-btn {
+    background: transparent;
+    border: 1px solid var(--green-dim);
+    color: var(--green);
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 12px;
+    padding: 10px 28px;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    cursor: pointer;
+    transition: all 0.2s;
+    position: relative;
+  }
+
+  .register-btn:hover {
+    background: rgba(0, 255, 65, 0.10);
+    color: var(--green);
+    box-shadow: 0 0 20px rgba(0,255,65,0.22), inset 0 0 12px rgba(0,255,65,0.08);
+  }
+
+  .register-btn.state-checking {
+    background: rgba(255, 176, 0, 0.08);
+    box-shadow: 0 0 16px rgba(255, 176, 0, 0.15), inset 0 0 8px rgba(255, 176, 0, 0.08);
+  }
+
+  .register-btn.state-checking:hover,
+  .register-btn.state-success:hover {
+    background: rgba(255, 176, 0, 0.08);
+    box-shadow: 0 0 16px rgba(255, 176, 0, 0.15), inset 0 0 8px rgba(255, 176, 0, 0.08);
+  }
+
+  .register-btn.state-success {
+    background: transparent;
+    box-shadow: 0 0 14px rgba(0, 255, 65, 0.12), inset 0 0 8px rgba(0, 255, 65, 0.05);
+  }
+
+  .register-btn.secondary {
+    border-color: #2a2a2a;
+    color: var(--text);
+    letter-spacing: 2px;
+  }
+
+  .register-btn.secondary:hover {
+    background: rgba(0,255,65,0.10);
+    color: var(--green);
+    box-shadow: none;
+  }
+
+  .register-hint {
+    font-size: 11px;
+    color: var(--text-dim);
+    margin-top: 16px;
+  }
+
+  .register-preview {
+    font-size: 12px;
+    color: var(--text-dim);
+    margin-bottom: 20px;
+    height: 20px;
+    transition: opacity 0.2s;
+  }
+
+  .register-preview .preview-arrow {
+    color: var(--green);
+  }
+
+  .register-preview #previewUrl {
+    color: var(--amber);
+    letter-spacing: 0.5px;
+  }
+
+  /* One-liner hook */
+  .hook {
+    margin-top: 16px;
+    font-size: 12px;
+    color: var(--text-dim);
+    letter-spacing: 1px;
+    opacity: 0;
+    animation: fadeIn 0.6s 1.6s forwards;
+  }
+
+  .hook span {
+    color: var(--green);
+  }
+
+  /* Comparison table */
+  .compare {
+    margin: 32px 0;
+    font-size: 12px;
+    width: 100%;
+    border-collapse: collapse;
+  }
+
+  .compare th {
+    text-align: left;
+    color: var(--text-dim);
+    font-weight: 400;
+    padding: 6px 16px 6px 0;
+    border-bottom: 1px solid var(--border);
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    font-size: 10px;
+  }
+
+  .compare td {
+    padding: 8px 16px 8px 0;
+    border-bottom: 1px solid #111;
+  }
+
+  .compare .label { color: var(--text-dim); }
+  .compare .us { color: var(--green); }
+  .compare .them { color: var(--text-dim); }
+
+  /* ASCII art dividers */
+  .ascii-divider {
+    text-align: center;
+    color: var(--text-dim);
+    font-size: 11px;
+    margin: 48px 0;
+    opacity: 0.4;
+    letter-spacing: 2px;
+  }
+
+  /* Footer */
+  .footer {
+    border-top: 1px solid var(--border);
+    padding: 24px 0 48px;
+    margin-top: 80px;
+    font-size: 11px;
+    color: var(--text-dim);
+    display: flex;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 12px;
+  }
+
+  .footer a {
+    color: var(--text-dim);
+    text-decoration: none;
+    transition: color 0.2s;
+  }
+
+  .footer a:hover { color: var(--green); }
+
+  .footer-links {
+    display: flex;
+    gap: 20px;
+  }
+
+  /* Responsive */
+  @media (max-width: 600px) {
+    .ascii-logo { font-size: 8px; }
+    .container { padding: 0 16px; }
+    .terminal-body { padding: 14px; font-size: 12px; }
+    .register-input-wrap { font-size: 15px; }
+    .register-input { font-size: 15px; width: 110px; }
+    .register-suffix { font-size: 15px; }
+    .compare { font-size: 11px; }
+    .compare td, .compare th { padding: 6px 8px 6px 0; }
+  }
+
+  /* Selection color */
+  ::selection {
+    background: var(--green);
+    color: var(--bg);
+  }
+</style>
+</head>
+<body>
+
+<div id="top"></div>
+<div class="container">
+
+  <!-- Top bar -->
+  <div class="topbar">
+    <div class="status">
+      <span class="dot"></span>
+      <span>base mainnet · demo UI (not connected)</span>
+    </div>
+    <div>
+      <a href="https://docs.ipns.io/" style="margin-right: 16px;">docs</a>
+      <a href="https://whitepaper.ipns.io/" style="margin-right: 16px;">whitepaper</a>
+      <a href="https://github.com/" style="margin-right: 16px;">github</a>
+      <a href="https://sepolia.basescan.org/address/0x1bbe8783884c23e1bf02f1221291696798002d8a">contract</a>
+    </div>
+  </div>
+
+  <!-- ASCII Logo -->
+  <div class="header">
+    <pre class="ascii-logo" aria-label="ipns">
+    __  ____  _  ______   _     
+   / / / __ \/ |/ / __/  (_)__  
+  / / / /_/ /    /\ \   / / _ \ 
+ /_/ / .___/_/|_/___/_ /_/\___/ 
+    /_/           /___/         
+---------------------------------</pre>
+    <div class="tagline">name your content. own it forever.</div>
+    <div class="hook">IPFS content is permanent. Your link to it should be too. <span>Now it is.</span></div>
+    <div class="hook" style="margin-top:8px;">Register once. Resolve on any compatible gateway.</div>
+  </div>
+
+  <!-- Search / Register (Primary CTA) -->
+  <div class="register-box" id="search">
+    <p style="color: var(--text); font-size: 13px; margin-bottom: 8px;">search / claim</p>
+    <div class="register-input-wrap">
+      <input
+        type="text"
+        class="register-input glow"
+        placeholder="alice"
+        maxlength="20"
+        spellcheck="false"
+        autocomplete="off"
+        id="nameInput"
+      ><span class="register-suffix">.ipns.io</span>
+    </div>
+    <div class="register-preview" id="registerPreview">
+      <span class="preview-arrow">→</span> <span id="previewUrl">https://alice.ipns.io</span>
+    </div>
+    <button class="register-btn" id="registerBtn">check availability (demo)</button>
+    <div class="register-hint">connect wallet → register onchain → set CID/IPNS</div>
+  </div>
+
+  <!-- Terminal Demo -->
+  <div class="terminal">
+    <div class="terminal-bar">
+      <div class="terminal-dots"><span></span><span></span><span></span></div>
+      <span>deploy in 3 commands</span>
+    </div>
+    <div class="terminal-body" id="terminal"><span id="typed"></span><span class="cursor-blink" id="cursor"></span></div>
+  </div>
+
+  <hr class="divider">
+
+  <!-- What is this -->
+  <div class="section" data-reveal>
+    <div class="section-header">What is this</div>
+    <p>
+      ipns is an <span class="highlight">on-chain name registry</span> for content-addressed sites.
+      You pick a name. You point it at a CID (or IPNS). Anyone can access it at
+      <span class="highlight">yourname.ipns.io</span> — in a normal browser via an HTTPS gateway.
+    </p>
+    <p>
+      The smart contract lives on <span class="highlight-amber">Base</span>.
+      Your name is yours until it expires. Renewals keep it alive (anti-squatting).
+      Resolution is permissionless: any gateway or client can read the chain and resolve names.
+    </p>
+    <p class="comment" style="margin-top: 14px;">
+      Note: this is not the IPFS <span class="highlight">IPNS protocol</span>. This is a registry that can point to IPFS CIDs or IPNS names.
+    </p>
+  </div>
+
+  <div class="ascii-divider">── ·  ·  · ──</div>
+
+  <!-- Why this matters -->
+  <div class="section" data-reveal>
+    <div class="section-header">Why this matters</div>
+    <p>
+      IPFS gives you <span class="highlight">permanent, censorship-resistant content</span>. 
+      But CIDs look like this:
+    </p>
+    <p style="color: var(--text-dim); font-size: 12px; word-break: break-all;">
+      bafybeigdyrzt5sfp7udm7hu76uh7y26nf3efuylqabf3oclgtqy55fbzdi
+    </p>
+    <p>
+      Good luck texting that to someone. IPNS.io turns that into 
+      <span class="highlight">alice.ipns.io</span> — 
+      a link that works in every browser, right now, no extensions needed.
+    </p>
+    <p>
+      Your content is decentralized. Your name can be too (owned onchain, resolved by anyone).
+    </p>
+  </div>
+
+  <div class="ascii-divider">── ·  ·  · ──</div>
+
+  <!-- How it works -->
+  <div class="section" data-reveal>
+    <div class="section-header">How it works</div>
+    <div class="flow">
+      <div class="flow-step">
+        <span class="flow-num">01</span>
+        <span class="flow-text"><span class="highlight">Register</span> a name on the IPNS.io contract (Base L2)</span>
+      </div>
+      <div class="flow-pipe">│</div>
+      <div class="flow-step">
+        <span class="flow-num">02</span>
+        <span class="flow-text"><span class="highlight">Set</span> your name to point at any IPFS CID or IPNS key</span>
+      </div>
+      <div class="flow-pipe">│</div>
+      <div class="flow-step">
+        <span class="flow-num">03</span>
+        <span class="flow-text"><span class="highlight">Share</span> your link — <span class="highlight-amber">yourname.ipns.io</span></span>
+      </div>
+      <div class="flow-pipe">│</div>
+      <div class="flow-step">
+        <span class="flow-num">04</span>
+        <span class="flow-text">Gateway reads the contract, fetches from IPFS, serves it over HTTPS</span>
+      </div>
+      <div class="flow-pipe">│</div>
+      <div class="flow-step">
+        <span class="flow-num">05</span>
+        <span class="flow-text"><span class="highlight">Update</span> your CID anytime. Same link. New content.</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="ascii-divider">── ·  ·  · ──</div>
+
+  <!-- vs others -->
+  <div class="section" data-reveal>
+    <div class="section-header">How we compare</div>
+    <table class="compare">
+      <thead>
+        <tr>
+          <th></th>
+          <th class="us" style="color: var(--green);">ipns.io</th>
+          <th>ens</th>
+          <th>ud</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td class="label">chain</td>
+          <td class="us">Base L2</td>
+          <td class="them">ETH L1</td>
+          <td class="them">Polygon</td>
+        </tr>
+        <tr>
+          <td class="label">5+ char name</td>
+          <td class="us">$1/yr</td>
+          <td class="them">$5/yr</td>
+          <td class="them">$5+ once</td>
+        </tr>
+        <tr>
+          <td class="label">4 char name</td>
+          <td class="us">$5/yr</td>
+          <td class="them">$160/yr</td>
+          <td class="them">$$$ once</td>
+        </tr>
+        <tr>
+          <td class="label">3 char name</td>
+          <td class="us">$10/yr</td>
+          <td class="them">$640/yr</td>
+          <td class="them">$$$ once</td>
+        </tr>
+        <tr>
+          <td class="label">2 char name</td>
+          <td class="us">$25/yr</td>
+          <td class="them">n/a</td>
+          <td class="them">n/a</td>
+        </tr>
+        <tr>
+          <td class="label">1 char name</td>
+          <td class="us">$50/yr</td>
+          <td class="them">n/a</td>
+          <td class="them">n/a</td>
+        </tr>
+        <tr>
+          <td class="label">gas per tx</td>
+          <td class="us">&lt; $0.01</td>
+          <td class="them">$5-50+</td>
+          <td class="them">~$0.01</td>
+        </tr>
+        <tr>
+          <td class="label">works in browser</td>
+          <td class="us">✓ any</td>
+          <td class="them">needs .limo</td>
+          <td class="them">needs ext.</td>
+        </tr>
+        <tr>
+          <td class="label">focus</td>
+          <td class="us">IPFS names</td>
+          <td class="them">everything</td>
+          <td class="them">everything</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="ascii-divider">── ·  ·  · ──</div>
+
+  <!-- Bottom CTA -->
+  <div class="section visible">
+    <div class="section-header">Ready</div>
+    <p style="margin-bottom: 14px; max-width: 600px;">
+      search a name. see the link. then register onchain.
+    </p>
+    <a class="register-btn secondary" href="#top" style="display: inline-block; text-decoration: none;">
+      back to top ↑
+    </a>
+  </div>
+
+  <div class="ascii-divider">── ·  ·  · ──</div>
+
+  <div class="section visible">
+    <div class="section-header">Trust Model</div>
+    <p>
+      Gateway resolution is open and reproducible from onchain state. The contract is the source of truth for name to CID mapping.
+    </p>
+    <p>
+      Current production gateway is operator-run for UX and speed. Anyone can run a compatible gateway against the same contract.
+    </p>
+    <p>
+      Future work: first-party self-hosted pinning and broader gateway decentralization.
+    </p>
+  </div>
+
+  <!-- Footer -->
+  <div class="footer">
+    <span>© 2026 ipns.io · built on Base · powered by IPFS</span>
+    <div class="footer-links">
+      <a href="#top">claim a name</a>
+      <a href="https://whitepaper.ipns.io/">whitepaper</a>
+      <a href="https://docs.ipns.io/">docs</a>
+      <a href="https://github.com/">github</a>
+    </div>
+  </div>
+
+</div>
+
+<script>
+  // Character-by-character typewriter with syntax highlighting
+  const code = [
+    { text: '# 1) Pin content to IPFS', cls: 'comment' },
+    { parts: [
+      { text: '$ ', cls: 'prompt' },
+      { text: 'ipfs add -r ', cls: 'cmd' },
+      { text: './site-dist', cls: 'string' }
+    ]},
+    { parts: [
+      { text: 'added ', cls: 'output' },
+      { text: 'bafybei...k3m', cls: 'success' },
+      { text: ' ./site-dist', cls: 'output' }
+    ]},
+    { text: '' },
+    { text: '# 2) Register name on Base', cls: 'comment' },
+    { parts: [
+      { text: '$ ', cls: 'prompt' },
+      { text: 'cast send ', cls: 'cmd' },
+      { text: '$CONTRACT ', cls: 'flag' },
+      { text: '"register(string,uint8)" ', cls: 'string' },
+      { text: '"myapp" ', cls: 'string' },
+      { text: '1 ', cls: 'number' },
+      { text: '--value ', cls: 'flag' },
+      { text: '$PRICE', cls: 'flag' }
+    ]},
+    { parts: [
+      { text: 'tx: ', cls: 'output' },
+      { text: '0x8f3a...2c1b', cls: 'success' },
+      { text: '   ✓', cls: 'success' }
+    ]},
+    { text: '' },
+    { text: '# 3) Point name to CID', cls: 'comment' },
+    { parts: [
+      { text: '$ ', cls: 'prompt' },
+      { text: 'cast send ', cls: 'cmd' },
+      { text: '$CONTRACT ', cls: 'flag' },
+      { text: '"setCID(string,string)" ', cls: 'string' },
+      { text: '"myapp" ', cls: 'string' },
+      { text: '"bafybei...k3m"', cls: 'string' }
+    ]},
+    { parts: [
+      { text: 'tx: ', cls: 'output' },
+      { text: '0x2e7b...9d4f', cls: 'success' },
+      { text: '   ✓', cls: 'success' }
+    ]},
+    { text: '' },
+    { parts: [
+      { text: 'live → ', cls: 'output' },
+      { text: 'https://myapp.ipns.io', cls: 'url' }
+    ]}
+  ];
+
+  const typedEl = document.getElementById('typed');
+  const cursorEl = document.getElementById('cursor');
+  const BASE_SPEED = 5;
+  const NEWLINE_PAUSE = 180;
+  const BLANK_LINE_PAUSE = 250;
+
+  function tokenizeSolidityLine(line) {
+    const keywords = new Set([
+      'pragma','contract','struct','mapping','public','constant','immutable',
+      'function','external','view','returns','payable'
+    ]);
+    const types = new Set([
+      'string','address','uint8','uint64','uint256','bytes32','bool'
+    ]);
+
+    const parts = [];
+    let i = 0;
+    while (i < line.length) {
+      const rest = line.slice(i);
+
+      // Inline comment
+      if (rest.startsWith('//')) {
+        parts.push({ text: rest, cls: 'comment' });
+        break;
+      }
+
+      // Block-ish placeholder comment
+      if (rest.startsWith('/*')) {
+        const end = line.indexOf('*/', i + 2);
+        const j = end === -1 ? line.length : end + 2;
+        parts.push({ text: line.slice(i, j), cls: 'comment' });
+        i = j;
+        continue;
+      }
+
+      // Quoted strings
+      if (line[i] === '"' || line[i] === "'") {
+        const q = line[i];
+        let j = i + 1;
+        while (j < line.length && line[j] !== q) j++;
+        if (j < line.length) j++;
+        parts.push({ text: line.slice(i, j), cls: 'string' });
+        i = j;
+        continue;
+      }
+
+      // Numbers (including ^0.8.20 style / decimals)
+      const numberMatch = rest.match(/^[\^]?\d[\d._]*/);
+      if (numberMatch) {
+        parts.push({ text: numberMatch[0], cls: 'number' });
+        i += numberMatch[0].length;
+        continue;
+      }
+
+      // Identifier words
+      const wordMatch = rest.match(/^[A-Za-z_][A-Za-z0-9_]*/);
+      if (wordMatch) {
+        const word = wordMatch[0];
+        let cls = null;
+        if (keywords.has(word)) cls = 'keyword';
+        else if (types.has(word)) cls = 'type';
+        else if (/^[A-Z][A-Za-z0-9_]*$/.test(word)) cls = 'contract-name';
+
+        // If this identifier is a function name (followed by "("), color it as function.
+        const after = line.slice(i + word.length);
+        if (!cls && /^\s*\(/.test(after)) cls = 'func';
+
+        parts.push({ text: word, cls });
+        i += word.length;
+        continue;
+      }
+
+      // Everything else (spaces, punctuation, symbols)
+      parts.push({ text: line[i], cls: null });
+      i++;
+    }
+
+    return parts;
+  }
+
+  // Flatten lines into a sequence of { char, cls } items
+  function buildCharSequence() {
+    const seq = [];
+    code.forEach((line, i) => {
+      if (line.text === '') {
+        seq.push({ char: '\n', cls: null, pause: BLANK_LINE_PAUSE });
+      } else if (line.cls) {
+        // Whole line is one class
+        for (const ch of line.text) {
+          seq.push({ char: ch, cls: line.cls });
+        }
+        seq.push({ char: '\n', cls: null, pause: NEWLINE_PAUSE });
+      } else if (line.parts) {
+        for (const part of line.parts) {
+          for (const ch of part.text) {
+            seq.push({ char: ch, cls: part.cls || null });
+          }
+        }
+        seq.push({ char: '\n', cls: null, pause: NEWLINE_PAUSE });
+      } else {
+        const parts = tokenizeSolidityLine(line.text);
+        for (const part of parts) {
+          for (const ch of part.text) {
+            seq.push({ char: ch, cls: part.cls || null });
+          }
+        }
+        seq.push({ char: '\n', cls: null, pause: NEWLINE_PAUSE });
+      }
+    });
+    return seq;
+  }
+
+  function runTypewriter() {
+    if (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+      // Accessibility: no animation, but keep syntax coloring.
+      const seq = buildCharSequence();
+      let fullCurrentSpan = null;
+      let fullCurrentCls = null;
+
+      seq.forEach((item) => {
+        if (item.char === '\n') {
+          typedEl.appendChild(document.createTextNode('\n'));
+          fullCurrentSpan = null;
+          fullCurrentCls = null;
+          return;
+        }
+
+        if (item.cls !== fullCurrentCls) {
+          if (item.cls) {
+            fullCurrentSpan = document.createElement('span');
+            fullCurrentSpan.className = item.cls;
+            typedEl.appendChild(fullCurrentSpan);
+          } else {
+            fullCurrentSpan = null;
+          }
+          fullCurrentCls = item.cls;
+        }
+
+        if (fullCurrentSpan) {
+          fullCurrentSpan.textContent += item.char;
+        } else {
+          const last = typedEl.lastChild;
+          if (last && last.nodeType === 3 && !fullCurrentCls) {
+            last.textContent += item.char;
+          } else {
+            typedEl.appendChild(document.createTextNode(item.char));
+          }
+        }
+      });
+      return;
+    }
+
+    const seq = buildCharSequence();
+    let i = 0;
+    let currentSpan = null;
+    let currentCls = null;
+
+    function typeNext() {
+      if (i >= seq.length) {
+        // Done typing — just show blinking cursor
+        return;
+      }
+
+      const item = seq[i];
+      i++;
+
+      if (item.char === '\n') {
+        typedEl.appendChild(document.createTextNode('\n'));
+        currentSpan = null;
+        currentCls = null;
+        // Auto-scroll terminal
+        typedEl.parentElement.scrollTop = typedEl.parentElement.scrollHeight;
+        setTimeout(typeNext, item.pause || NEWLINE_PAUSE);
+        return;
+      }
+
+      // If class changed, start a new span
+      if (item.cls !== currentCls) {
+        if (item.cls) {
+          currentSpan = document.createElement('span');
+          currentSpan.className = item.cls;
+          typedEl.appendChild(currentSpan);
+        } else {
+          currentSpan = null;
+        }
+        currentCls = item.cls;
+      }
+
+      if (currentSpan) {
+        currentSpan.textContent += item.char;
+      } else {
+        // Append to a text node
+        const last = typedEl.lastChild;
+        if (last && last.nodeType === 3 && !currentCls) {
+          last.textContent += item.char;
+        } else {
+          typedEl.appendChild(document.createTextNode(item.char));
+        }
+      }
+
+      // Speed variation: spaces are instant, normal chars have slight randomness
+      let delay = item.char === ' ' ? 1 : BASE_SPEED + Math.random() * 3;
+      setTimeout(typeNext, delay);
+    }
+
+    // Start after terminal fades in
+    setTimeout(typeNext, 2000);
+  }
+
+  runTypewriter();
+
+  // Scroll reveal for sections
+  const revealElements = document.querySelectorAll('[data-reveal]');
+  
+  const observer = new IntersectionObserver((entries) => {
+    entries.forEach(entry => {
+      if (entry.isIntersecting) {
+        entry.target.classList.add('visible');
+        observer.unobserve(entry.target);
+      }
+    });
+  }, { threshold: 0.15 });
+
+  revealElements.forEach(el => observer.observe(el));
+
+  // Input interaction
+  const nameInput = document.getElementById('nameInput');
+  const registerBtn = document.getElementById('registerBtn');
+  const previewUrl = document.getElementById('previewUrl');
+  let checkTimer = null;
+  let postCheckTimer = null;
+
+  function resetRegisterButton() {
+    registerBtn.textContent = 'check availability (demo)';
+    registerBtn.style.color = 'var(--green)';
+    registerBtn.style.borderColor = 'var(--green-dim)';
+    registerBtn.style.background = 'transparent';
+    registerBtn.classList.remove('state-checking', 'state-success');
+  }
+
+  nameInput.addEventListener('input', (e) => {
+    e.target.value = e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, '');
+    const name = e.target.value || 'alice';
+    previewUrl.textContent = `https://${name}.ipns.io`;
+    if (checkTimer) clearTimeout(checkTimer);
+    if (postCheckTimer) clearTimeout(postCheckTimer);
+    resetRegisterButton();
+  });
+
+  nameInput.addEventListener('focus', () => {
+    const name = nameInput.value || 'alice';
+    previewUrl.textContent = `https://${name}.ipns.io`;
+  });
+
+  registerBtn.addEventListener('click', () => {
+    const name = nameInput.value.trim();
+    if (!name) {
+      nameInput.focus();
+      return;
+    }
+    if (checkTimer) clearTimeout(checkTimer);
+    if (postCheckTimer) clearTimeout(postCheckTimer);
+
+    registerBtn.textContent = '⠋ checking...';
+    registerBtn.style.color = 'var(--amber)';
+    registerBtn.style.borderColor = 'var(--amber)';
+    registerBtn.style.background = 'transparent';
+    registerBtn.classList.remove('state-success');
+    registerBtn.classList.add('state-checking');
+    
+    checkTimer = setTimeout(() => {
+      registerBtn.textContent = `✓ ${name}.ipns.io is available`;
+      registerBtn.style.color = 'var(--green)';
+      registerBtn.style.borderColor = 'var(--green)';
+      registerBtn.style.background = 'transparent';
+      registerBtn.classList.remove('state-checking');
+      registerBtn.classList.add('state-success');
+      
+      postCheckTimer = setTimeout(() => {
+        registerBtn.textContent = 'connect wallet to register →';
+        registerBtn.style.color = 'var(--green)';
+        registerBtn.style.borderColor = 'var(--green)';
+        registerBtn.style.background = 'transparent';
+        registerBtn.classList.remove('state-checking');
+        registerBtn.classList.add('state-success');
+      }, 2000);
+    }, 1200);
+  });
+
+  // Easter egg: Konami code
+  let konamiProgress = 0;
+  const konamiCode = [38,38,40,40,37,39,37,39,66,65];
+  document.addEventListener('keydown', (e) => {
+    if (e.keyCode === konamiCode[konamiProgress]) {
+      konamiProgress++;
+      if (konamiProgress === konamiCode.length) {
+        document.body.style.filter = 'hue-rotate(180deg)';
+        konamiProgress = 0;
+      }
+    } else {
+      konamiProgress = 0;
+    }
+  });
+</script>
+
+</body>
+</html>

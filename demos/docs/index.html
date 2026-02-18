@@ -1,0 +1,882 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>docs.ipns.io — Developer Reference</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@300;400;500;600&family=IBM+Plex+Sans:wght@300;400;600;700&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #ffffff;
+    --fg: #000000;
+    --dim: #666666;
+    --faint: #999999;
+    --border: #e0e0e0;
+    --code-bg: #f4f4f4;
+    --accent: #0050ff;
+    --green: #00a550;
+    --red: #d40000;
+    --yellow: #f0a500;
+    --sidebar-w: 260px;
+  }
+
+  html { font-size: 15px; }
+
+  body {
+    background: var(--bg);
+    color: var(--fg);
+    font-family: 'IBM Plex Sans', sans-serif;
+    display: grid;
+    grid-template-columns: var(--sidebar-w) 1fr;
+    grid-template-rows: auto 1fr;
+    min-height: 100vh;
+  }
+
+  /* ── TOP BAR ── */
+  .topbar {
+    grid-column: 1 / -1;
+    display: flex;
+    align-items: center;
+    height: 52px;
+    border-bottom: 1px solid var(--fg);
+    padding: 0 20px;
+    gap: 0;
+    position: sticky;
+    top: 0;
+    background: var(--fg);
+    color: var(--bg);
+    z-index: 100;
+  }
+
+  .topbar-brand {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 14px;
+    font-weight: 600;
+    letter-spacing: 0.02em;
+    color: var(--bg);
+    text-decoration: none;
+    padding-right: 20px;
+    margin-right: 20px;
+    border-right: 1px solid rgba(255,255,255,0.2);
+  }
+
+  .topbar-tag {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px;
+    color: rgba(255,255,255,0.5);
+    letter-spacing: 0.05em;
+    flex: 1;
+  }
+
+  .topbar-nav {
+    display: flex;
+    gap: 0;
+  }
+
+  .topbar-nav a {
+    color: rgba(255,255,255,0.6);
+    text-decoration: none;
+    font-size: 12px;
+    font-family: 'IBM Plex Mono', monospace;
+    padding: 0 16px;
+    height: 52px;
+    display: flex;
+    align-items: center;
+    border-left: 1px solid rgba(255,255,255,0.1);
+    transition: all 0.1s;
+  }
+  .topbar-nav a:hover { background: rgba(255,255,255,0.1); color: white; }
+  .topbar-nav a.active { background: var(--accent); color: white; }
+
+  /* ── SIDEBAR ── */
+  .sidebar {
+    border-right: 1px solid var(--fg);
+    padding: 28px 0;
+    position: sticky;
+    top: 52px;
+    height: calc(100vh - 52px);
+    overflow-y: auto;
+  }
+
+  .sidebar-section {
+    margin-bottom: 28px;
+  }
+
+  .sidebar-heading {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: var(--faint);
+    padding: 0 20px 10px;
+    border-bottom: 1px solid var(--border);
+    margin-bottom: 4px;
+  }
+
+  .sidebar-link {
+    display: flex;
+    align-items: center;
+    padding: 8px 20px;
+    font-size: 13px;
+    color: var(--dim);
+    text-decoration: none;
+    transition: all 0.1s;
+    gap: 10px;
+    cursor: pointer;
+  }
+  .sidebar-link:hover { background: var(--code-bg); color: var(--fg); }
+  .sidebar-link.active { background: var(--fg); color: var(--bg); }
+  .sidebar-link .dot {
+    width: 6px; height: 6px; border-radius: 50%;
+    background: var(--border); flex-shrink: 0;
+  }
+  .sidebar-link.active .dot { background: var(--accent); }
+
+  /* ── MAIN ── */
+  .main {
+    padding: 48px 64px;
+    max-width: 860px;
+    overflow-y: auto;
+  }
+
+  .doc-section {
+    margin-bottom: 72px;
+    padding-bottom: 72px;
+    border-bottom: 1px solid var(--border);
+    scroll-margin-top: 72px;
+  }
+  .doc-section:last-child { border-bottom: none; }
+
+  .doc-tag {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin-bottom: 12px;
+  }
+
+  h1 {
+    font-size: 36px;
+    font-weight: 700;
+    letter-spacing: -0.5px;
+    line-height: 1.1;
+    margin-bottom: 16px;
+  }
+
+  h2 {
+    font-size: 22px;
+    font-weight: 600;
+    margin-bottom: 16px;
+    padding-top: 40px;
+    letter-spacing: -0.2px;
+  }
+
+  h3 {
+    font-size: 16px;
+    font-weight: 600;
+    margin-bottom: 12px;
+    padding-top: 24px;
+    font-family: 'IBM Plex Mono', monospace;
+    color: var(--dim);
+  }
+
+  p {
+    font-size: 14px;
+    line-height: 1.75;
+    color: var(--dim);
+    margin-bottom: 16px;
+  }
+
+  /* ── CODE BLOCKS ── */
+  .code-wrap {
+    margin: 20px 0;
+    border: 1px solid var(--border);
+    background: var(--code-bg);
+    overflow: hidden;
+  }
+
+  .code-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 8px 16px;
+    border-bottom: 1px solid var(--border);
+    background: var(--fg);
+  }
+
+  .code-lang {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: rgba(255,255,255,0.5);
+  }
+
+  .copy-btn {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 0.05em;
+    color: rgba(255,255,255,0.6);
+    background: transparent;
+    border: 1px solid rgba(255,255,255,0.2);
+    padding: 3px 10px;
+    cursor: pointer;
+    transition: all 0.1s;
+  }
+  .copy-btn:hover { background: rgba(255,255,255,0.1); color: white; }
+  .copy-btn.copied { color: var(--green); border-color: var(--green); }
+
+  pre {
+    padding: 20px;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 13px;
+    line-height: 1.65;
+    overflow-x: auto;
+    color: var(--fg);
+    white-space: pre;
+  }
+
+  .t-comment { color: #999; }
+  .t-keyword  { color: var(--accent); font-weight: 500; }
+  .t-string   { color: var(--green); }
+  .t-num      { color: #c96800; }
+  .t-fn       { color: #7b00d4; }
+
+  code {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 12px;
+    background: var(--code-bg);
+    border: 1px solid var(--border);
+    padding: 1px 6px;
+    color: var(--fg);
+  }
+
+  /* ── ENDPOINT TABLE ── */
+  .endpoint-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+    margin: 16px 0;
+  }
+
+  .endpoint-table th {
+    padding: 10px 16px;
+    text-align: left;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    background: var(--fg);
+    color: var(--bg);
+  }
+
+  .endpoint-table td {
+    padding: 12px 16px;
+    border-bottom: 1px solid var(--border);
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 12px;
+    vertical-align: top;
+  }
+
+  .endpoint-table td.desc {
+    font-family: 'IBM Plex Sans', sans-serif;
+    color: var(--dim);
+  }
+
+  .endpoint-table tr:last-child td { border-bottom: none; }
+
+  /* ── BADGES ── */
+  .badge {
+    display: inline-block;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    padding: 2px 8px;
+    margin-left: 8px;
+    vertical-align: middle;
+  }
+  .badge-view  { background: #e8f4ff; color: var(--accent); }
+  .badge-write { background: #fff4e8; color: var(--yellow); }
+  .badge-admin { background: #ffe8e8; color: var(--red); }
+
+  /* ── ABI CARD ── */
+  .abi-fn {
+    border: 1px solid var(--border);
+    margin: 12px 0;
+  }
+  .abi-fn-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 16px;
+    background: var(--code-bg);
+    border-bottom: 1px solid var(--border);
+    cursor: pointer;
+  }
+  .abi-fn-sig {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 13px;
+    font-weight: 500;
+    flex: 1;
+  }
+  .abi-fn-body {
+    padding: 16px;
+    font-size: 13px;
+    color: var(--dim);
+    line-height: 1.6;
+    display: none;
+  }
+  .abi-fn.open .abi-fn-body { display: block; }
+  .abi-fn-body code { font-size: 11px; }
+
+  /* ── INTERACTIVE TOOL ── */
+  .tool-card {
+    border: 1px solid var(--fg);
+    margin: 20px 0;
+    overflow: hidden;
+  }
+
+  .tool-card-header {
+    background: var(--fg);
+    color: var(--bg);
+    padding: 12px 20px;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: 0.05em;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  .tool-card-body { padding: 20px; }
+
+  .field-row {
+    display: grid;
+    grid-template-columns: 140px 1fr;
+    gap: 12px;
+    align-items: center;
+    margin-bottom: 12px;
+  }
+
+  label {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.06em;
+    color: var(--dim);
+    text-transform: uppercase;
+  }
+
+  input, select {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 13px;
+    padding: 8px 12px;
+    border: 1px solid var(--border);
+    background: var(--bg);
+    color: var(--fg);
+    outline: none;
+    width: 100%;
+    transition: border-color 0.1s;
+  }
+  input:focus, select:focus { border-color: var(--fg); }
+
+  .run-btn {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    padding: 10px 24px;
+    background: transparent;
+    color: var(--accent);
+    border: 1px solid var(--accent);
+    cursor: pointer;
+    transition: all 0.12s;
+  }
+  .run-btn:hover {
+    background: rgba(0, 80, 255, 0.12);
+    box-shadow: 0 0 0 1px rgba(0, 80, 255, 0.25);
+  }
+
+  .output-block {
+    margin-top: 16px;
+    padding: 16px;
+    background: var(--code-bg);
+    border: 1px solid var(--border);
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 12px;
+    line-height: 1.7;
+    white-space: pre;
+    overflow-x: auto;
+    min-height: 48px;
+  }
+
+  .status-line { display: flex; gap: 8px; align-items: center; font-size: 12px; color: var(--dim); margin-bottom: 4px; }
+  .status-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--green); animation: pulse 2s infinite; }
+  @keyframes pulse { 0%,100%{opacity:1;} 50%{opacity:0.4;} }
+</style>
+</head>
+<body>
+
+<header class="topbar">
+  <a href="https://www.ipns.io/" class="topbar-brand">IPNS.io</a>
+  <span class="topbar-tag">developer reference · v1</span>
+  <nav class="topbar-nav">
+    <a href="https://www.ipns.io/">www</a>
+    <a href="https://docs.ipns.io/" class="active">docs</a>
+    <a href="https://admin.ipns.io/">admin</a>
+    <a href="https://app.ipns.io/">app</a>
+    <a href="https://status.ipns.io/">status</a>
+  </nav>
+</header>
+
+<nav class="sidebar">
+  <div class="sidebar-section">
+    <div class="sidebar-heading">Getting Started</div>
+    <a class="sidebar-link active" href="#quickstart" data-target="quickstart">
+      <span class="dot"></span>Quickstart
+    </a>
+    <a class="sidebar-link" href="#concepts" data-target="concepts">
+      <span class="dot"></span>Core Concepts
+    </a>
+  </div>
+  <div class="sidebar-section">
+    <div class="sidebar-heading">Contract</div>
+    <a class="sidebar-link" href="#abi" data-target="abi">
+      <span class="dot"></span>ABI Reference
+    </a>
+    <a class="sidebar-link" href="#pricing" data-target="pricing">
+      <span class="dot"></span>Pricing
+    </a>
+  </div>
+  <div class="sidebar-section">
+    <div class="sidebar-heading">Gateway</div>
+    <a class="sidebar-link" href="#endpoints" data-target="endpoints">
+      <span class="dot"></span>Endpoints
+    </a>
+    <a class="sidebar-link" href="#trust" data-target="trust">
+      <span class="dot"></span>Trust Model
+    </a>
+  </div>
+  <div class="sidebar-section">
+    <div class="sidebar-heading">Integrations</div>
+    <a class="sidebar-link" href="#mcp" data-target="mcp">
+      <span class="dot"></span>MCP / AI Agents
+    </a>
+    <a class="sidebar-link" href="#cli" data-target="cli">
+      <span class="dot"></span>CLI (cast)
+    </a>
+    <a class="sidebar-link" href="#js" data-target="js">
+      <span class="dot"></span>JavaScript (viem)
+    </a>
+  </div>
+</nav>
+
+<main class="main">
+
+  <!-- QUICKSTART -->
+  <section class="doc-section" id="quickstart">
+    <div class="doc-tag">Getting Started</div>
+    <h1>Quickstart</h1>
+    <p>IPNS.io is an onchain registry on Base. Register a name, point it at an IPFS CID, get a browser-accessible URL. Update the CID anytime for less than a penny.</p>
+
+    <div class="status-line">
+      <span class="status-dot"></span>
+      <span>Contract live on Base · <code>0x7Bb7f1C90DeDd39F58D4F0EDc96B9722997CCc2d</code></span>
+    </div>
+
+    <h2>Full flow in 3 commands</h2>
+
+    <div class="code-wrap">
+      <div class="code-header">
+        <span class="code-lang">bash · foundry cast</span>
+        <button class="copy-btn" data-target="code-quick">copy</button>
+      </div>
+      <pre id="code-quick"><span class="t-comment"># 1. Get the exact price (ETH, in wei)</span>
+<span class="t-keyword">export</span> CONTRACT=<span class="t-string">"0x7Bb7f1C90DeDd39F58D4F0EDc96B9722997CCc2d"</span>
+PRICE=$(cast call --rpc-url <span class="t-string">"$BASE_RPC"</span> <span class="t-string">"$CONTRACT"</span> \
+  <span class="t-string">"getPrice(string,uint8)(uint256)"</span> <span class="t-string">"alice"</span> <span class="t-num">1</span>)
+
+<span class="t-comment"># 2. Register the name for 1 year</span>
+cast send --rpc-url <span class="t-string">"$BASE_RPC"</span> --private-key <span class="t-string">"$PK"</span> <span class="t-string">"$CONTRACT"</span> \
+  <span class="t-string">"register(string,uint8)"</span> <span class="t-string">"alice"</span> <span class="t-num">1</span> --value <span class="t-string">"$PRICE"</span>
+
+<span class="t-comment"># 3. Point it at your content</span>
+cast send --rpc-url <span class="t-string">"$BASE_RPC"</span> --private-key <span class="t-string">"$PK"</span> <span class="t-string">"$CONTRACT"</span> \
+  <span class="t-string">"setCID(string,string)"</span> <span class="t-string">"alice"</span> <span class="t-string">"bafybeibi4xw34..."</span>
+
+<span class="t-comment"># Your site is live at:</span>
+<span class="t-comment"># https://alice.ipns.io/</span></pre>
+    </div>
+  </section>
+
+  <!-- CONCEPTS -->
+  <section class="doc-section" id="concepts">
+    <div class="doc-tag">Core Concepts</div>
+    <h1>How it works</h1>
+    <p>IPFS content is addressed by hash — the CID is the content. This is powerful but breaks any reference whenever content is updated. IPNS.io adds a mutable indirection layer: a registry of names that each point to a CID.</p>
+    <p>The name lives onchain (Base L2). The content lives on IPFS. The gateway at <code>*.ipns.io</code> reads the registry and fetches content — it's a convenience delivery layer, not the source of truth.</p>
+    <p>If the gateway goes down: the registry data is still onchain. Run your own gateway with the open-source code and all names resolve identically.</p>
+  </section>
+
+  <!-- ABI -->
+  <section class="doc-section" id="abi">
+    <div class="doc-tag">Contract</div>
+    <h1>ABI Reference</h1>
+    <p>Contract: <code>0x7Bb7f1C90DeDd39F58D4F0EDc96B9722997CCc2d</code> on Base mainnet.</p>
+
+    <h2>Write functions</h2>
+
+    <div class="abi-fn open">
+      <div class="abi-fn-header" onclick="this.parentElement.classList.toggle('open')">
+        <span class="abi-fn-sig">register(string name, uint8 years) payable</span>
+        <span class="badge badge-write">write</span>
+      </div>
+      <div class="abi-fn-body">
+        Register a new name. The name is normalized to lowercase. Valid characters: <code>a-z 0-9 -</code> (no leading/trailing hyphens). Names 5+ chars cost $1/year. Send ETH equal to <code>getPrice(name, years)</code> or the transaction reverts. Excess ETH is refunded.
+      </div>
+    </div>
+
+    <div class="abi-fn">
+      <div class="abi-fn-header" onclick="this.parentElement.classList.toggle('open')">
+        <span class="abi-fn-sig">setCID(string name, string cid)</span>
+        <span class="badge badge-write">write</span>
+      </div>
+      <div class="abi-fn-body">
+        Update the IPFS CID for a name you own. Gas only (~$0.005 on Base). The gateway reflects the new CID within seconds of the transaction confirming.
+      </div>
+    </div>
+
+    <div class="abi-fn">
+      <div class="abi-fn-header" onclick="this.parentElement.classList.toggle('open')">
+        <span class="abi-fn-sig">renew(string name, uint8 years) payable</span>
+        <span class="badge badge-write">write</span>
+      </div>
+      <div class="abi-fn-body">
+        Extend registration. Anyone can renew any name (gifting is allowed). If in the 90-day grace period, extends from now. Otherwise extends from current expiry — no time is lost.
+      </div>
+    </div>
+
+    <div class="abi-fn">
+      <div class="abi-fn-header" onclick="this.parentElement.classList.toggle('open')">
+        <span class="abi-fn-sig">transfer(string name, address to)</span>
+        <span class="badge badge-write">write</span>
+      </div>
+      <div class="abi-fn-body">
+        Transfer ownership of a name to another address. Only the current owner can call this. The name must be active (not expired).
+      </div>
+    </div>
+
+    <h2>Read functions</h2>
+
+    <div class="abi-fn">
+      <div class="abi-fn-header" onclick="this.parentElement.classList.toggle('open')">
+        <span class="abi-fn-sig">resolve(string name) → string cid</span>
+        <span class="badge badge-view">view</span>
+      </div>
+      <div class="abi-fn-body">
+        Returns the current CID for a name, or empty string if not found or expired.
+      </div>
+    </div>
+
+    <div class="abi-fn">
+      <div class="abi-fn-header" onclick="this.parentElement.classList.toggle('open')">
+        <span class="abi-fn-sig">getPrice(string name, uint8 years) → uint256</span>
+        <span class="badge badge-view">view</span>
+      </div>
+      <div class="abi-fn-body">
+        Returns the exact price in wei to register a name for N years. Always call this before <code>register()</code> — pass the return value as <code>msg.value</code>.
+      </div>
+    </div>
+
+    <div class="abi-fn">
+      <div class="abi-fn-header" onclick="this.parentElement.classList.toggle('open')">
+        <span class="abi-fn-sig">isAvailable(string name) → bool</span>
+        <span class="badge badge-view">view</span>
+      </div>
+      <div class="abi-fn-body">
+        Returns true if a name can be registered. False if taken, in grace period, or reserved.
+      </div>
+    </div>
+  </section>
+
+  <!-- PRICING -->
+  <section class="doc-section" id="pricing">
+    <div class="doc-tag">Contract</div>
+    <h1>Pricing</h1>
+    <p>Registration fees are denominated in USD but paid in ETH at spot price (use <code>getPrice()</code> for the exact wei amount).</p>
+
+    <table class="endpoint-table">
+      <thead>
+        <tr><th>Name length</th><th>USD / year</th><th>Example</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>1 char</td><td>$50</td><td><code>a.ipns.io</code></td></tr>
+        <tr><td>2 chars</td><td>$25</td><td><code>ab.ipns.io</code></td></tr>
+        <tr><td>3 chars</td><td>$10</td><td><code>eth.ipns.io</code></td></tr>
+        <tr><td>4 chars</td><td>$5</td><td><code>ipfs.ipns.io</code></td></tr>
+        <tr><td>5+ chars</td><td>$1</td><td><code>alice.ipns.io</code></td></tr>
+      </tbody>
+    </table>
+
+    <p>CID updates (<code>setCID</code>) cost only gas — no registration fee. Update as frequently as you deploy.</p>
+  </section>
+
+  <!-- ENDPOINTS -->
+  <section class="doc-section" id="endpoints">
+    <div class="doc-tag">Gateway</div>
+    <h1>Endpoints</h1>
+
+    <table class="endpoint-table">
+      <thead>
+        <tr><th>Pattern</th><th>Description</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>https://name.ipns.io/</td>
+          <td class="desc">Subdomain mode. Preferred. Resolves <code>name</code> from registry, fetches from IPFS, serves HTTPS.</td>
+        </tr>
+        <tr>
+          <td>https://ipns.io/name/</td>
+          <td class="desc">Path mode. Same resolution, use when subdomain routing isn't available.</td>
+        </tr>
+        <tr>
+          <td>https://ipns.io/healthz</td>
+          <td class="desc">Gateway health check. Returns JSON with contract status and IPFS upstream reachability.</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <h2>Command builder</h2>
+
+    <div class="tool-card">
+      <div class="tool-card-header">
+        <span>Command generator — resolve a name</span>
+      </div>
+      <div class="tool-card-body">
+        <div class="field-row">
+          <label>Name</label>
+          <input id="resolveName" value="alice" />
+        </div>
+        <div class="field-row">
+          <label>Tool</label>
+          <select id="resolveTool">
+            <option value="curl">curl</option>
+            <option value="cast">cast (foundry)</option>
+            <option value="viem">viem (JS)</option>
+          </select>
+        </div>
+        <button class="run-btn" id="generateBtn">Generate</button>
+        <div class="output-block" id="resolveOutput">— select options and click generate —</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- TRUST -->
+  <section class="doc-section" id="trust">
+    <div class="doc-tag">Gateway</div>
+    <h1>Trust Model</h1>
+    <p>The registry is the source of truth. The gateway is a delivery convenience. These are distinct:</p>
+    <p><strong>Registry (onchain):</strong> Who owns a name, what CID it points to, when it expires. Permanent, auditable, permissionless to read.</p>
+    <p><strong>Gateway (ipns.io):</strong> Reads the registry, fetches content from IPFS, serves it over HTTPS. If this goes down, content is still on IPFS and ownership is still onchain.</p>
+    <p>The gateway code is open source. Run your own with:</p>
+    <div class="code-wrap">
+      <div class="code-header">
+        <span class="code-lang">bash</span>
+        <button class="copy-btn" data-target="code-docker">copy</button>
+      </div>
+      <pre id="code-docker">docker run -e CONTRACT=0x7Bb7f1C90DeDd39F58D4F0EDc96B9722997CCc2d \
+           -e BASE_RPC=https://mainnet.base.org \
+           -p 8080:8080 \
+           ghcr.io/ipns-io/gateway:latest</pre>
+    </div>
+  </section>
+
+  <!-- MCP -->
+  <section class="doc-section" id="mcp">
+    <div class="doc-tag">Integrations</div>
+    <h1>MCP / AI Agents</h1>
+    <p>IPNS.io ships an MCP (Model Context Protocol) server that gives any compatible AI agent the ability to publish websites to IPFS with a single function call.</p>
+
+    <div class="code-wrap">
+      <div class="code-header">
+        <span class="code-lang">bash · npm</span>
+        <button class="copy-btn" data-target="code-npm">copy</button>
+      </div>
+      <pre id="code-npm">npm install -g @ipns-io/mcp-server</pre>
+    </div>
+
+    <h3>Available tools</h3>
+    <table class="endpoint-table">
+      <thead>
+        <tr><th>Tool</th><th>Description</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>deploy_site</td><td class="desc">All-in-one: pin content to IPFS, register or update name, return live URL.</td></tr>
+        <tr><td>pin_to_ipfs</td><td class="desc">Upload content to IPFS via Pinata. Returns CID.</td></tr>
+        <tr><td>register_name</td><td class="desc">Register a new name in the registry.</td></tr>
+        <tr><td>update_name</td><td class="desc">Update the CID for a name you own.</td></tr>
+        <tr><td>resolve_name</td><td class="desc">Look up what CID a name currently points to.</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <!-- CLI -->
+  <section class="doc-section" id="cli">
+    <div class="doc-tag">Integrations</div>
+    <h1>CLI via Foundry cast</h1>
+
+    <div class="code-wrap">
+      <div class="code-header">
+        <span class="code-lang">bash</span>
+        <button class="copy-btn" data-target="code-cli">copy</button>
+      </div>
+      <pre id="code-cli"><span class="t-comment"># Setup</span>
+<span class="t-keyword">export</span> BASE_RPC=<span class="t-string">"https://mainnet.base.org"</span>
+<span class="t-keyword">export</span> CONTRACT=<span class="t-string">"0x7Bb7f1C90DeDd39F58D4F0EDc96B9722997CCc2d"</span>
+<span class="t-keyword">export</span> PK=<span class="t-string">"0xYOUR_PRIVATE_KEY"</span>
+
+<span class="t-comment"># Check availability</span>
+cast call --rpc-url <span class="t-string">"$BASE_RPC"</span> <span class="t-string">"$CONTRACT"</span> \
+  <span class="t-string">"isAvailable(string)(bool)"</span> <span class="t-string">"yourname"</span>
+
+<span class="t-comment"># Get price</span>
+PRICE=$(cast call --rpc-url <span class="t-string">"$BASE_RPC"</span> <span class="t-string">"$CONTRACT"</span> \
+  <span class="t-string">"getPrice(string,uint8)(uint256)"</span> <span class="t-string">"yourname"</span> <span class="t-num">1</span>)
+
+<span class="t-comment"># Register</span>
+cast send --rpc-url <span class="t-string">"$BASE_RPC"</span> --private-key <span class="t-string">"$PK"</span> <span class="t-string">"$CONTRACT"</span> \
+  <span class="t-string">"register(string,uint8)"</span> <span class="t-string">"yourname"</span> <span class="t-num">1</span> --value <span class="t-string">"$PRICE"</span>
+
+<span class="t-comment"># Set CID (after pinning to IPFS)</span>
+cast send --rpc-url <span class="t-string">"$BASE_RPC"</span> --private-key <span class="t-string">"$PK"</span> <span class="t-string">"$CONTRACT"</span> \
+  <span class="t-string">"setCID(string,string)"</span> <span class="t-string">"yourname"</span> <span class="t-string">"bafybei..."</span>
+
+<span class="t-comment"># Resolve</span>
+cast call --rpc-url <span class="t-string">"$BASE_RPC"</span> <span class="t-string">"$CONTRACT"</span> \
+  <span class="t-string">"resolve(string)(string)"</span> <span class="t-string">"yourname"</span></pre>
+    </div>
+  </section>
+
+  <!-- JS -->
+  <section class="doc-section" id="js">
+    <div class="doc-tag">Integrations</div>
+    <h1>JavaScript (viem)</h1>
+
+    <div class="code-wrap">
+      <div class="code-header">
+        <span class="code-lang">typescript · viem</span>
+        <button class="copy-btn" data-target="code-viem">copy</button>
+      </div>
+      <pre id="code-viem"><span class="t-keyword">import</span> { createPublicClient, createWalletClient, http, parseAbi } from <span class="t-string">'viem'</span>
+<span class="t-keyword">import</span> { base } from <span class="t-string">'viem/chains'</span>
+<span class="t-keyword">import</span> { privateKeyToAccount } from <span class="t-string">'viem/accounts'</span>
+
+<span class="t-keyword">const</span> CONTRACT = <span class="t-string">"0x7Bb7f1C90DeDd39F58D4F0EDc96B9722997CCc2d"</span>
+
+<span class="t-keyword">const</span> ABI = parseAbi([
+  <span class="t-string">"function register(string name, uint8 years) payable"</span>,
+  <span class="t-string">"function setCID(string name, string cid)"</span>,
+  <span class="t-string">"function resolve(string name) view returns (string)"</span>,
+  <span class="t-string">"function getPrice(string name, uint8 years) view returns (uint256)"</span>,
+  <span class="t-string">"function isAvailable(string name) view returns (bool)"</span>,
+])
+
+<span class="t-keyword">const</span> client = createPublicClient({ chain: base, transport: http() })
+<span class="t-keyword">const</span> wallet = createWalletClient({
+  account: privateKeyToAccount(<span class="t-string">"0x..."</span>),
+  chain: base, transport: http()
+})
+
+<span class="t-comment">// Register a name</span>
+<span class="t-keyword">const</span> price = <span class="t-keyword">await</span> client.<span class="t-fn">readContract</span>({
+  address: CONTRACT, abi: ABI,
+  functionName: <span class="t-string">'getPrice'</span>, args: [<span class="t-string">'alice'</span>, <span class="t-num">1</span>]
+})
+
+<span class="t-keyword">await</span> wallet.<span class="t-fn">writeContract</span>({
+  address: CONTRACT, abi: ABI,
+  functionName: <span class="t-string">'register'</span>, args: [<span class="t-string">'alice'</span>, <span class="t-num">1</span>], value: price
+})</pre>
+    </div>
+  </section>
+
+</main>
+
+<script>
+// Copy buttons
+document.querySelectorAll('.copy-btn').forEach(btn => {
+  btn.addEventListener('click', async () => {
+    const id = btn.dataset.target;
+    const text = document.getElementById(id)?.textContent || '';
+    try {
+      await navigator.clipboard.writeText(text);
+      btn.textContent = 'copied!';
+      btn.classList.add('copied');
+      setTimeout(() => { btn.textContent = 'copy'; btn.classList.remove('copied'); }, 2000);
+    } catch {}
+  });
+});
+
+// Sidebar scroll tracking
+function scrollToSection(id) {
+  const container = document.querySelector('.main');
+  const target = document.getElementById(id);
+  if (!target) return;
+
+  target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  if (container) {
+    const fallbackTop = Math.max(0, target.offsetTop - 16);
+    container.scrollTo({ top: fallbackTop, behavior: 'smooth' });
+  } else {
+    const y = target.getBoundingClientRect().top + window.scrollY - 72;
+    window.scrollTo({ top: Math.max(0, y), behavior: 'smooth' });
+  }
+
+  document.querySelectorAll('.sidebar-link').forEach((link) => link.classList.remove('active'));
+  const active = document.querySelector(`.sidebar-link[data-target="${id}"]`);
+  if (active) active.classList.add('active');
+
+  if (window.location.hash !== `#${id}`) {
+    history.replaceState(null, '', `#${id}`);
+  }
+}
+
+document.querySelectorAll('.sidebar-link[data-target]').forEach((link) => {
+  link.addEventListener('click', (e) => {
+    e.preventDefault();
+    const id = link.dataset.target;
+    if (!id) return;
+    scrollToSection(id);
+  });
+});
+
+// Command generator
+document.getElementById('generateBtn').addEventListener('click', () => {
+  const name = (document.getElementById('resolveName').value || '').trim().toLowerCase();
+  const tool = document.getElementById('resolveTool').value;
+  const CONTRACT = '0x7Bb7f1C90DeDd39F58D4F0EDc96B9722997CCc2d';
+  let output;
+  if (tool === 'curl') {
+    output = `curl -i https://${name}.ipns.io/`;
+  } else if (tool === 'cast') {
+    output = `cast call --rpc-url "$BASE_RPC" "${CONTRACT}" "resolve(string)(string)" "${name}"`;
+  } else {
+    output = `const cid = await client.readContract({\n  address: "${CONTRACT}",\n  abi: [...],\n  functionName: 'resolve',\n  args: ['${name}']\n})`;
+  }
+  document.getElementById('resolveOutput').textContent = output;
+});
+</script>
+</body>
+</html>

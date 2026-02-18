@@ -1,0 +1,531 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>cid.run — run your content on IPFS</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Martian+Mono:wght@300;400;500;700&display=swap" rel="stylesheet">
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --bg:     #0c0c0c;
+  --fg:     #e8e8e8;
+  --dim:    #444;
+  --faint:  #222;
+  --accent: #ff4d00;
+  --green:  #00e676;
+  --border: #1a1a1a;
+  --mono:   'Martian Mono', monospace;
+}
+
+html { font-size: 14px; }
+
+body {
+  background: var(--bg);
+  color: var(--fg);
+  font-family: var(--mono);
+  min-height: 100vh;
+  display: grid;
+  grid-template-rows: auto 1fr auto;
+}
+
+/* ── HEADER ── */
+.bar {
+  border-bottom: 1px solid var(--border);
+  padding: 14px 32px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 12px;
+}
+
+.bar-logo {
+  font-weight: 700;
+  font-size: 15px;
+  color: var(--fg);
+  text-decoration: none;
+  display: flex;
+  align-items: center;
+  gap: 0;
+}
+
+.bar-logo .slash { color: var(--accent); }
+
+.bar-meta { color: var(--dim); font-size: 11px; }
+.bar-meta span { color: var(--fg); }
+
+.bar-nav { display: flex; gap: 24px; }
+.bar-nav a {
+  color: var(--dim);
+  text-decoration: none;
+  font-size: 11px;
+  letter-spacing: 0.05em;
+  transition: color 0.1s;
+}
+.bar-nav a:hover { color: var(--fg); }
+
+/* ── MAIN ── */
+.main {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  max-width: 1100px;
+  margin: 0 auto;
+  width: 100%;
+  padding: 72px 32px;
+  gap: 80px;
+  align-items: start;
+}
+
+/* ── LEFT ── */
+.left {}
+
+.eyebrow {
+  font-size: 10px;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  color: var(--accent);
+  margin-bottom: 20px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.eyebrow::before { content: '▶'; font-size: 8px; }
+
+h1 {
+  font-size: 36px;
+  font-weight: 700;
+  line-height: 1.1;
+  letter-spacing: -1px;
+  margin-bottom: 24px;
+  color: var(--fg);
+}
+
+h1 .run { color: var(--accent); }
+h1 .dim { color: var(--dim); }
+
+.desc {
+  font-size: 13px;
+  line-height: 1.8;
+  color: var(--dim);
+  margin-bottom: 40px;
+  max-width: 420px;
+}
+
+.desc strong { color: var(--fg); font-weight: 500; }
+
+/* ── NAME INPUT ── */
+.input-row {
+  display: flex;
+  align-items: stretch;
+  border: 1px solid var(--border);
+  background: var(--faint);
+  margin-bottom: 12px;
+  transition: border-color 0.15s;
+}
+.input-row:focus-within { border-color: var(--accent); }
+
+.input-prefix {
+  padding: 0 14px;
+  display: flex;
+  align-items: center;
+  font-size: 12px;
+  color: var(--dim);
+  border-right: 1px solid var(--border);
+  white-space: nowrap;
+}
+
+#nameInput {
+  flex: 1;
+  background: transparent;
+  border: none;
+  outline: none;
+  padding: 14px 16px;
+  font-family: var(--mono);
+  font-size: 18px;
+  font-weight: 500;
+  color: var(--fg);
+  min-width: 0;
+}
+
+.input-suffix {
+  padding: 0 14px;
+  display: flex;
+  align-items: center;
+  font-size: 12px;
+  color: var(--dim);
+  border-left: 1px solid var(--border);
+  white-space: nowrap;
+}
+
+.price-line {
+  font-size: 12px;
+  color: var(--dim);
+  margin-bottom: 24px;
+  min-height: 18px;
+}
+.price-line .val { color: var(--green); }
+
+/* ── YEAR TOGGLE ── */
+.year-row {
+  display: flex;
+  gap: 4px;
+  margin-bottom: 20px;
+}
+
+.yr {
+  padding: 6px 14px;
+  font-family: var(--mono);
+  font-size: 11px;
+  border: 1px solid var(--border);
+  background: transparent;
+  color: var(--dim);
+  cursor: pointer;
+  transition: all 0.1s;
+  letter-spacing: 0.05em;
+}
+.yr.active { background: var(--accent); border-color: var(--accent); color: #fff; }
+.yr:hover:not(.active) { border-color: var(--fg); color: var(--fg); }
+
+/* ── RUN BUTTON ── */
+.run-btn {
+  width: 100%;
+  padding: 14px;
+  background: var(--accent);
+  color: #fff;
+  border: none;
+  font-family: var(--mono);
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  cursor: pointer;
+  text-transform: uppercase;
+  transition: all 0.15s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+}
+.run-btn:hover { background: #ff6520; }
+.run-btn::before { content: '$'; opacity: 0.6; }
+
+.cmd-out {
+  margin-top: 16px;
+  background: #000;
+  border: 1px solid var(--border);
+  padding: 14px 16px;
+  font-size: 11px;
+  line-height: 1.8;
+  color: var(--green);
+  white-space: pre;
+  overflow-x: auto;
+  display: none;
+}
+
+/* ── RIGHT: STEPS ── */
+.right {}
+
+.step {
+  display: grid;
+  grid-template-columns: 40px 1fr;
+  gap: 16px;
+  padding: 20px 0;
+  border-bottom: 1px solid var(--border);
+  align-items: start;
+}
+.step:first-child { padding-top: 0; }
+.step:last-child { border-bottom: none; }
+
+.step-num {
+  font-size: 11px;
+  color: var(--accent);
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  padding-top: 3px;
+}
+
+.step-title {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--fg);
+  margin-bottom: 6px;
+  letter-spacing: -0.2px;
+}
+
+.step-body {
+  font-size: 12px;
+  color: var(--dim);
+  line-height: 1.7;
+}
+
+.step-code {
+  margin-top: 10px;
+  background: #000;
+  border: 1px solid var(--border);
+  padding: 10px 14px;
+  font-size: 11px;
+  color: var(--green);
+  white-space: pre;
+  overflow-x: auto;
+  line-height: 1.6;
+}
+
+/* ── PRICE TABLE ── */
+.price-table {
+  margin-top: 48px;
+  border-top: 1px solid var(--border);
+  padding-top: 32px;
+}
+
+.price-table-title {
+  font-size: 10px;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  color: var(--dim);
+  margin-bottom: 16px;
+}
+
+.price-row {
+  display: flex;
+  justify-content: space-between;
+  padding: 8px 0;
+  border-bottom: 1px solid var(--faint);
+  font-size: 12px;
+}
+.price-row:last-child { border-bottom: none; }
+.price-row .name { color: var(--dim); }
+.price-row .cost { color: var(--fg); }
+.price-row.highlight .cost { color: var(--green); }
+
+/* ── FOOTER ── */
+.footer {
+  border-top: 1px solid var(--border);
+  padding: 16px 32px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 11px;
+  color: var(--dim);
+}
+
+.footer a { color: var(--dim); text-decoration: none; }
+.footer a:hover { color: var(--fg); }
+
+/* ── BLINKING CURSOR ── */
+.cursor {
+  display: inline-block;
+  width: 8px;
+  height: 14px;
+  background: var(--accent);
+  vertical-align: middle;
+  animation: blink 1s step-end infinite;
+}
+@keyframes blink { 0%,100%{opacity:1;} 50%{opacity:0;} }
+
+/* ── CONTRACT BADGE ── */
+.contract-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  border: 1px solid var(--border);
+  padding: 8px 14px;
+  font-size: 11px;
+  color: var(--dim);
+  margin-bottom: 32px;
+}
+.contract-badge .dot {
+  width: 6px; height: 6px; border-radius: 50%;
+  background: var(--green);
+  box-shadow: 0 0 6px var(--green);
+  animation: pulse 2s infinite;
+}
+@keyframes pulse { 0%,100%{opacity:1;} 50%{opacity:0.4;} }
+.contract-badge code { color: var(--fg); font-size: 11px; }
+</style>
+</head>
+<body>
+
+<header class="bar">
+  <a href="#" class="bar-logo">cid<span class="slash">.</span>run</a>
+  <span class="bar-meta">powered by <span><a href="https://ipns.io" style="color: inherit; text-decoration: none;">IPNS</a></span> · Base Mainnet</span>
+  <nav class="bar-nav">
+    <a href="https://ipns.io">IPNS</a>
+    <a href="https://docs.ipns.io">docs</a>
+    <a href="https://status.ipns.io">status</a>
+  </nav>
+</header>
+
+<main class="main">
+
+  <div class="left">
+    <div class="eyebrow">Run your content</div>
+
+    <h1>Pin it.<br>Name it.<br><span class="run">Run it.</span></h1>
+
+    <p class="desc">
+      Every time you update IPFS content, the CID changes.
+      Every reference breaks. <strong>cid.run</strong> gives your content
+      a permanent address that survives every update.
+      One name. Sub-cent updates. Any browser.
+    </p>
+    <p class="desc" style="margin-top:-20px; margin-bottom:28px;">
+      Register once, resolve on any compatible gateway.
+    </p>
+
+    <div class="contract-badge">
+      <span class="dot"></span>
+      <span>contract</span>
+      <code>0x1bbE8783...8002d8a</code>
+      <span>·</span>
+      <span>Base</span>
+    </div>
+
+    <div class="input-row">
+      <span class="input-prefix">name</span>
+      <input id="nameInput" type="text" value="alice" autocomplete="off" spellcheck="false"/>
+      <span class="input-suffix">.cid.run</span>
+    </div>
+
+    <div class="price-line" id="priceLine">
+      <span class="val" id="priceVal">$10</span> / year · 3-char name
+    </div>
+
+    <div class="year-row">
+      <button class="yr active" data-y="1">1yr</button>
+      <button class="yr" data-y="2">2yr</button>
+      <button class="yr" data-y="3">3yr</button>
+      <button class="yr" data-y="5">5yr</button>
+    </div>
+
+    <button class="run-btn" id="runBtn">register name</button>
+
+    <div class="cmd-out" id="cmdOut"></div>
+
+    <div class="price-table">
+      <div class="price-table-title">Pricing · USD equiv.</div>
+      <div class="price-row"><span class="name">1 char</span><span class="cost">$50 / yr</span></div>
+      <div class="price-row"><span class="name">2 chars</span><span class="cost">$25 / yr</span></div>
+      <div class="price-row"><span class="name">3 chars</span><span class="cost">$10 / yr</span></div>
+      <div class="price-row"><span class="name">4 chars</span><span class="cost">$5 / yr</span></div>
+      <div class="price-row highlight"><span class="name">5+ chars</span><span class="cost">$1 / yr</span></div>
+    </div>
+  </div>
+
+  <div class="right">
+    <div class="step">
+      <div class="step-num">01</div>
+      <div>
+        <div class="step-title">Pin your content to IPFS</div>
+        <div class="step-body">Upload a directory or file to any IPFS pinning service. Get a CID back.</div>
+        <div class="step-code">npx pinata upload ./dist
+# → bafybei4xw34bcyax6xt...</div>
+      </div>
+    </div>
+
+    <div class="step">
+      <div class="step-num">02</div>
+      <div>
+        <div class="step-title">Register your name</div>
+        <div class="step-body">One transaction on Base. Name is yours for the year.</div>
+        <div class="step-code">PRICE=$(cast call "$CONTRACT" \
+  "getPrice(string,uint8)(uint256)" \
+  "alice" 1)
+cast send "$CONTRACT" \
+  "register(string,uint8)" \
+  "alice" 1 --value "$PRICE"</div>
+      </div>
+    </div>
+
+    <div class="step">
+      <div class="step-num">03</div>
+      <div>
+        <div class="step-title">Point name at CID</div>
+        <div class="step-body">Sub-cent gas. Reflects in the gateway within seconds.</div>
+        <div class="step-code">cast send "$CONTRACT" \
+  "setCID(string,string)" \
+  "alice" "bafybei4xw34..."</div>
+      </div>
+    </div>
+
+    <div class="step">
+      <div class="step-num">04</div>
+      <div>
+        <div class="step-title">Run it</div>
+        <div class="step-body">Your name is live. Update the CID anytime for under a penny. The URL never changes.</div>
+        <div class="step-code">curl https://alice.cid.run/
+# 200 OK · served from IPFS<span class="cursor"></span></div>
+      </div>
+    </div>
+  </div>
+
+</main>
+
+<footer class="footer">
+  <span>cid.run · powered by <a href="https://ipns.io">IPNS</a> · contract on Base</span>
+  <span><a href="https://github.com">open source</a> · <a href="https://ipns.io">IPNS</a></span>
+</footer>
+
+<script>
+(function() {
+  const CONTRACT = '0x1bbe8783884c23e1bf02f1221291696798002d8a';
+  function tier(len) {
+    if (len<=1) return {usd:50,eth:0.01852};
+    if (len===2) return {usd:25,eth:0.00926};
+    if (len===3) return {usd:10,eth:0.00370};
+    if (len===4) return {usd:5, eth:0.00185};
+    return {usd:1,eth:0.00037};
+  }
+  let years = 1;
+
+  document.querySelectorAll('.yr').forEach(b => {
+    b.addEventListener('click', () => {
+      document.querySelectorAll('.yr').forEach(x => x.classList.remove('active'));
+      b.classList.add('active');
+      years = Number(b.dataset.y);
+      update();
+    });
+  });
+
+  const inp = document.getElementById('nameInput');
+  inp.addEventListener('input', update);
+
+  function update() {
+    const name = (inp.value||'').trim().toLowerCase() || 'alice';
+    const t = tier(name.length);
+    const total = t.usd * years;
+    document.getElementById('priceVal').textContent = `$${total}`;
+    document.getElementById('priceLine').innerHTML =
+      `<span class="val">$${total}</span> / ${years} year${years>1?'s':''} · ${name.length}-char name`;
+  }
+
+  document.getElementById('runBtn').addEventListener('click', () => {
+    const name = (inp.value||'').trim().toLowerCase() || 'alice';
+    const t = tier(name.length);
+    const ethVal = (t.eth * years).toFixed(5);
+    const out = document.getElementById('cmdOut');
+    out.style.display = 'block';
+    out.textContent = [
+      `export CONTRACT="${CONTRACT}"`,
+      ``,
+      `# get exact price`,
+      `PRICE=$(cast call --rpc-url "$BASE_RPC" "$CONTRACT" \\`,
+      `  "getPrice(string,uint8)(uint256)" "${name}" ${years})`,
+      ``,
+      `# register`,
+      `cast send --rpc-url "$BASE_RPC" --private-key "$PK" "$CONTRACT" \\`,
+      `  "register(string,uint8)" "${name}" ${years} --value "$PRICE"`,
+      ``,
+      `# set your CID`,
+      `cast send --rpc-url "$BASE_RPC" --private-key "$PK" "$CONTRACT" \\`,
+      `  "setCID(string,string)" "${name}" "bafybei..."`,
+      ``,
+      `# live at: https://${name}.cid.run/`,
+    ].join('\n');
+  });
+
+  update();
+})();
+</script>
+</body>
+</html>

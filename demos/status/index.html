@@ -1,0 +1,710 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>status.ipns.io — System Status</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=VT323&family=Azeret+Mono:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg:     #020805;
+    --surface:#050f07;
+    --g0:     #00ff41;  /* primary green */
+    --g1:     #00c832;
+    --g2:     #008020;
+    --g3:     #004010;
+    --g4:     #001a06;
+    --amber:  #ffb000;
+    --red:    #ff2233;
+    --blue:   #00aaff;
+    --dim:    rgba(0,255,65,0.3);
+    --border: rgba(0,255,65,0.15);
+    --mono:   'Azeret Mono', monospace;
+    --display:'VT323', monospace;
+    --glow:   0 0 8px rgba(0,255,65,0.4);
+    --glow-lg:0 0 20px rgba(0,255,65,0.3), 0 0 60px rgba(0,255,65,0.1);
+  }
+
+  html { font-size: 14px; }
+
+  body {
+    background: var(--bg);
+    color: var(--g0);
+    font-family: var(--mono);
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* CRT overlay */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background: repeating-linear-gradient(
+      0deg,
+      transparent,
+      transparent 2px,
+      rgba(0,0,0,0.04) 2px,
+      rgba(0,0,0,0.04) 4px
+    );
+    pointer-events: none;
+    z-index: 1000;
+  }
+
+  body::after {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background: radial-gradient(ellipse at center, transparent 60%, rgba(0,0,0,0.4) 100%);
+    pointer-events: none;
+    z-index: 999;
+  }
+
+  /* ── HEADER BAR ── */
+  .header {
+    border-bottom: 1px solid var(--border);
+    padding: 0 24px;
+    height: 52px;
+    display: flex;
+    align-items: center;
+    gap: 24px;
+    background: var(--surface);
+    position: sticky;
+    top: 0;
+    z-index: 100;
+  }
+
+  .header-logo {
+    font-family: var(--display);
+    font-size: 26px;
+    color: var(--g0);
+    text-shadow: var(--glow);
+    text-decoration: none;
+    letter-spacing: 2px;
+  }
+
+  .header-sep { width: 1px; height: 24px; background: var(--border); }
+
+  .header-id {
+    font-size: 11px;
+    color: var(--dim);
+    letter-spacing: 0.1em;
+  }
+
+  .header-id span { color: var(--g0); }
+
+  .header-right {
+    margin-left: auto;
+    display: flex;
+    align-items: center;
+    gap: 20px;
+  }
+
+  .overall-status {
+    font-family: var(--display);
+    font-size: 22px;
+    letter-spacing: 2px;
+    text-shadow: var(--glow);
+  }
+  .overall-status.ok    { color: var(--g0); }
+  .overall-status.warn  { color: var(--amber); text-shadow: 0 0 8px rgba(255,176,0,0.5); }
+  .overall-status.error { color: var(--red);   text-shadow: 0 0 8px rgba(255,34,51,0.5); }
+
+  .nav-strip {
+    display: flex;
+    gap: 1px;
+  }
+  .nav-strip a {
+    display: block;
+    padding: 5px 12px;
+    font-size: 11px;
+    color: var(--dim);
+    text-decoration: none;
+    border: 1px solid transparent;
+    letter-spacing: 0.08em;
+    transition: all 0.1s;
+  }
+  .nav-strip a:hover { color: var(--g0); border-color: var(--border); }
+  .nav-strip a.active { color: var(--bg); background: var(--g0); border-color: var(--g0); }
+
+  /* ── MAIN GRID ── */
+  .grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 1px;
+    background: var(--border);
+    border: 1px solid var(--border);
+    margin: 20px 24px;
+  }
+
+  .cell {
+    background: var(--surface);
+    padding: 20px;
+  }
+
+  .cell-title {
+    font-size: 10px;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: var(--dim);
+    margin-bottom: 16px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .cell-title::before {
+    content: '//';
+    color: var(--g3);
+  }
+
+  /* ── METRIC ROWS ── */
+  .metric {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    padding: 8px 0;
+    border-bottom: 1px solid var(--border);
+    font-size: 12px;
+  }
+  .metric:last-child { border-bottom: none; }
+  .metric-key { color: var(--g2); letter-spacing: 0.05em; }
+  .metric-val { color: var(--g0); font-weight: 500; text-align: right; }
+  .metric-val.ok     { color: var(--g0); text-shadow: var(--glow); }
+  .metric-val.warn   { color: var(--amber); }
+  .metric-val.error  { color: var(--red); }
+  .metric-val.dim    { color: var(--g2); }
+
+  /* ── PULSING LED ── */
+  .led {
+    display: inline-block;
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    background: var(--g0);
+    box-shadow: 0 0 6px var(--g0), 0 0 12px rgba(0,255,65,0.3);
+    animation: ledpulse 2.5s infinite;
+  }
+  .led.warn  { background: var(--amber); box-shadow: 0 0 6px var(--amber); }
+  .led.error { background: var(--red);   box-shadow: 0 0 6px var(--red); animation: ledflash 0.5s infinite; }
+
+  @keyframes ledpulse { 0%,100%{opacity:1;} 50%{opacity:0.4;} }
+  @keyframes ledflash { 0%,100%{opacity:1;} 50%{opacity:0;} }
+
+  /* ── SPARKLINE ── */
+  .spark-wrap {
+    margin: 12px 0;
+    height: 40px;
+    display: flex;
+    align-items: flex-end;
+    gap: 2px;
+    overflow: hidden;
+  }
+
+  .spark-bar {
+    flex: 1;
+    background: var(--g3);
+    border-top: 1px solid var(--g2);
+    min-height: 2px;
+    transition: height 0.3s ease;
+  }
+  .spark-bar.active { background: var(--g2); border-color: var(--g0); }
+
+  /* ── FULL-WIDTH ROWS ── */
+  .full-row {
+    grid-column: 1 / -1;
+  }
+
+  /* ── INCIDENT FEED ── */
+  .incident-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 12px;
+  }
+  .incident-table th {
+    padding: 8px 12px;
+    text-align: left;
+    font-size: 9px;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: var(--g2);
+    border-bottom: 1px solid var(--border);
+  }
+  .incident-table td {
+    padding: 9px 12px;
+    border-bottom: 1px solid rgba(0,255,65,0.05);
+    color: var(--g2);
+    font-size: 11px;
+  }
+  .incident-table td.ok   { color: var(--g0); }
+  .incident-table td.warn { color: var(--amber); }
+  .incident-table td.err  { color: var(--red); }
+  .incident-table td.comp { color: var(--g1); }
+  .incident-table tr:hover td { background: var(--g4); }
+
+  /* ── SYNTHETIC CHECK ── */
+  .check-form {
+    display: grid;
+    grid-template-columns: 1fr 1fr auto;
+    gap: 10px;
+    align-items: end;
+    margin-bottom: 16px;
+  }
+
+  .field-group { display: flex; flex-direction: column; gap: 6px; }
+  .field-label { font-size: 9px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--g2); }
+
+  input, select {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    color: var(--g0);
+    font-family: var(--mono);
+    font-size: 12px;
+    padding: 8px 12px;
+    outline: none;
+    transition: border-color 0.15s;
+    width: 100%;
+  }
+  input:focus { border-color: var(--g0); box-shadow: 0 0 0 1px rgba(0,255,65,0.2); }
+
+  .run-btn {
+    font-family: var(--display);
+    font-size: 20px;
+    letter-spacing: 2px;
+    padding: 6px 20px;
+    background: transparent;
+    color: var(--g0);
+    border: 1px solid var(--g0);
+    cursor: pointer;
+    text-shadow: var(--glow);
+    box-shadow: var(--glow);
+    transition: all 0.15s;
+    white-space: nowrap;
+    height: 36px;
+    display: flex;
+    align-items: center;
+  }
+  .run-btn:hover {
+    background: rgba(0, 255, 65, 0.12);
+    color: var(--g0);
+    box-shadow: 0 0 0 1px rgba(0, 255, 65, 0.35), var(--glow);
+  }
+
+  /* ── TERMINAL OUTPUT ── */
+  .terminal {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    padding: 16px;
+    font-size: 12px;
+    line-height: 1.8;
+    white-space: pre;
+    overflow-x: auto;
+    min-height: 80px;
+    color: var(--g0);
+  }
+
+  .t-dim   { color: var(--g2); }
+  .t-ok    { color: var(--g0); text-shadow: var(--glow); }
+  .t-warn  { color: var(--amber); }
+  .t-err   { color: var(--red); }
+  .t-info  { color: var(--blue); }
+  .t-key   { color: var(--g1); }
+
+  /* ── UPTIME BAR ── */
+  .uptime-row {
+    display: flex;
+    gap: 3px;
+    margin: 10px 0;
+    height: 24px;
+    align-items: center;
+  }
+
+  .uptime-seg {
+    flex: 1;
+    height: 100%;
+    background: var(--g3);
+    border: 1px solid var(--g2);
+    cursor: default;
+    transition: all 0.1s;
+    position: relative;
+  }
+  .uptime-seg.ok   { background: var(--g2); border-color: var(--g0); }
+  .uptime-seg.warn { background: rgba(255,176,0,0.2); border-color: var(--amber); }
+  .uptime-seg.err  { background: rgba(255,34,51,0.2); border-color: var(--red); }
+  .uptime-seg:hover { filter: brightness(1.5); }
+
+  .uptime-label {
+    display: flex;
+    justify-content: space-between;
+    font-size: 9px;
+    color: var(--g2);
+    letter-spacing: 0.05em;
+  }
+
+  /* ── CLOCK + TICKER ── */
+  .status-footer {
+    margin: 0 24px 24px;
+    border: 1px solid var(--border);
+    background: var(--surface);
+    padding: 12px 20px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 11px;
+    color: var(--g2);
+    letter-spacing: 0.05em;
+  }
+
+  #liveClock {
+    font-family: var(--display);
+    font-size: 22px;
+    color: var(--g0);
+    text-shadow: var(--glow);
+    letter-spacing: 3px;
+  }
+
+  .contract-addr {
+    font-size: 11px;
+    color: var(--g2);
+    letter-spacing: 0.08em;
+  }
+
+  .contract-addr span { color: var(--g0); }
+</style>
+</head>
+<body>
+
+<header class="header">
+  <a href="https://www.ipns.io/" class="header-logo">IPNS.IO</a>
+  <div class="header-sep"></div>
+  <div class="header-id">STATUS.IPNS.IO · <span>NETWORK MONITOR</span></div>
+  <div class="header-right">
+    <div class="overall-status ok" id="overallStatus">● ALL SYSTEMS OPERATIONAL</div>
+    <nav class="nav-strip">
+      <a href="https://www.ipns.io/">www</a>
+      <a href="https://docs.ipns.io/">docs</a>
+      <a href="https://admin.ipns.io/">admin</a>
+      <a href="https://app.ipns.io/">app</a>
+      <a href="https://status.ipns.io/" class="active">status</a>
+    </nav>
+  </div>
+</header>
+
+<div class="grid">
+
+  <!-- GATEWAY CELL -->
+  <div class="cell">
+    <div class="cell-title">Gateway <span class="led" id="gwLed"></span></div>
+
+    <div class="metric">
+      <span class="metric-key">worker_route</span>
+      <span class="metric-val ok" id="gwRoute">UP</span>
+    </div>
+    <div class="metric">
+      <span class="metric-key">healthz</span>
+      <span class="metric-val ok" id="gwHealth">OK</span>
+    </div>
+    <div class="metric">
+      <span class="metric-key">latency_p50</span>
+      <span class="metric-val" id="gwLatency">—</span>
+    </div>
+    <div class="metric">
+      <span class="metric-key">latency_p99</span>
+      <span class="metric-val" id="gwLatencyP99">—</span>
+    </div>
+    <div class="metric">
+      <span class="metric-key">error_rate</span>
+      <span class="metric-val" id="gwErrorRate">—</span>
+    </div>
+    <div class="metric">
+      <span class="metric-key">uptime_30d</span>
+      <span class="metric-val ok" id="gwUptime">—</span>
+    </div>
+
+    <div class="spark-wrap" id="gwSpark"></div>
+  </div>
+
+  <!-- CHAIN CELL -->
+  <div class="cell">
+    <div class="cell-title">Chain · Base <span class="led" id="chainLed"></span></div>
+
+    <div class="metric">
+      <span class="metric-key">chain_id</span>
+      <span class="metric-val dim">8453</span>
+    </div>
+    <div class="metric">
+      <span class="metric-key">rpc_status</span>
+      <span class="metric-val ok" id="rpcStatus">HEALTHY</span>
+    </div>
+    <div class="metric">
+      <span class="metric-key">block_lag</span>
+      <span class="metric-val" id="chainBlockLag">—</span>
+    </div>
+    <div class="metric">
+      <span class="metric-key">resolve_call</span>
+      <span class="metric-val" id="chainResolve">—</span>
+    </div>
+    <div class="metric">
+      <span class="metric-key">contract</span>
+      <span class="metric-val dim" style="font-size:10px;">0x7Bb7...Cc2d</span>
+    </div>
+    <div class="metric">
+      <span class="metric-key">grace_period</span>
+      <span class="metric-val dim">90d</span>
+    </div>
+
+    <div class="spark-wrap" id="chainSpark"></div>
+  </div>
+
+  <!-- CONTENT CELL -->
+  <div class="cell">
+    <div class="cell-title">Content · IPFS <span class="led" id="ipfsLed"></span></div>
+
+    <div class="metric">
+      <span class="metric-key">upstream</span>
+      <span class="metric-val ok" id="ipfsUpstream">REACHABLE</span>
+    </div>
+    <div class="metric">
+      <span class="metric-key">cache_hit</span>
+      <span class="metric-val" id="ipfsCacheHit">—</span>
+    </div>
+    <div class="metric">
+      <span class="metric-key">pin_count</span>
+      <span class="metric-val dim" id="ipfsPinCount">—</span>
+    </div>
+    <div class="metric">
+      <span class="metric-key">sample_name</span>
+      <span class="metric-val dim">alice.ipns.io</span>
+    </div>
+    <div class="metric">
+      <span class="metric-key">sample_resolve</span>
+      <span class="metric-val ok" id="ipfsSampleResolve">CID FOUND</span>
+    </div>
+    <div class="metric">
+      <span class="metric-key">sample_fetch</span>
+      <span class="metric-val ok" id="ipfsSampleFetch">200 OK</span>
+    </div>
+
+    <div class="spark-wrap" id="ipfsSpark"></div>
+  </div>
+
+  <!-- UPTIME HISTORY -->
+  <div class="cell" style="grid-column: 1 / 3;">
+    <div class="cell-title">Uptime History · Gateway · 90 days</div>
+    <div class="uptime-row" id="uptimeBar"></div>
+    <div class="uptime-label">
+      <span>90 days ago</span>
+      <span id="uptimePct">—</span>
+      <span>today</span>
+    </div>
+  </div>
+
+  <!-- TRUST MODEL -->
+  <div class="cell">
+    <div class="cell-title">Trust Model</div>
+    <div class="metric">
+      <span class="metric-key">data_source</span>
+      <span class="metric-val dim">onchain</span>
+    </div>
+    <div class="metric">
+      <span class="metric-key">registry</span>
+      <span class="metric-val ok">PERMANENT</span>
+    </div>
+    <div class="metric">
+      <span class="metric-key">gateway</span>
+      <span class="metric-val dim">replaceable</span>
+    </div>
+    <div class="metric">
+      <span class="metric-key">content</span>
+      <span class="metric-val dim">ipfs (p2p)</span>
+    </div>
+    <div class="metric">
+      <span class="metric-key">if_gw_dies</span>
+      <span class="metric-val ok">DATA SURVIVES</span>
+    </div>
+  </div>
+
+  <!-- INCIDENT FEED -->
+  <div class="cell full-row">
+    <div class="cell-title">Incident Feed</div>
+    <table class="incident-table">
+      <thead>
+        <tr>
+          <th>Timestamp (UTC)</th>
+          <th>Component</th>
+          <th>Severity</th>
+          <th>Status</th>
+          <th>Detail</th>
+        </tr>
+      </thead>
+      <tbody id="incidentFeed"></tbody>
+    </table>
+  </div>
+
+  <!-- SYNTHETIC CHECK -->
+  <div class="cell full-row">
+    <div class="cell-title">Synthetic Check · Run On Demand</div>
+    <div class="check-form">
+      <div class="field-group">
+        <label class="field-label">Name to probe</label>
+        <input id="checkName" value="alice" />
+      </div>
+      <div class="field-group">
+        <label class="field-label">Expected CID prefix</label>
+        <input id="checkCid" value="bafy" />
+      </div>
+      <button class="run-btn" id="runCheck">RUN</button>
+    </div>
+    <div class="terminal" id="checkOutput"><span class="t-dim">// ready — fill fields and click RUN to execute synthetic health check</span></div>
+  </div>
+
+</div>
+
+<div class="status-footer">
+  <div class="contract-addr">
+    CONTRACT: <span>0x7Bb7f1C90DeDd39F58D4F0EDc96B9722997CCc2d</span> · BASE MAINNET
+  </div>
+  <div id="liveClock">--:--:-- UTC</div>
+  <div>AUTO-REFRESH: <span style="color:var(--g0);">60s</span></div>
+</div>
+
+<script>
+(function () {
+  // Clock
+  function tick() {
+    const now = new Date();
+    const t = now.toUTCString().split(' ')[4];
+    document.getElementById('liveClock').textContent = t + ' UTC';
+  }
+  setInterval(tick, 1000); tick();
+
+  // Random helpers
+  function rand(a, b) { return Math.random() * (b - a) + a; }
+  function randInt(a, b) { return Math.floor(rand(a, b + 1)); }
+  function randPct(a, b) { return rand(a, b).toFixed(1) + '%'; }
+  function randMs(a, b)  { return randInt(a, b) + 'ms'; }
+
+  // Build sparklines
+  function buildSpark(id, data) {
+    const wrap = document.getElementById(id);
+    const max = Math.max(...data);
+    wrap.innerHTML = data.map((v, i) =>
+      `<div class="spark-bar${i === data.length - 1 ? ' active' : ''}"
+            style="height:${Math.max(4, (v/max)*36)}px"></div>`
+    ).join('');
+  }
+
+  // Simulate live metrics
+  function refreshMetrics() {
+    const latP50 = randInt(90, 160);
+    const latP99 = randInt(latP50 + 40, latP50 + 120);
+    const errRate = rand(0.01, 0.25).toFixed(2);
+    const cacheHit = randInt(62, 82);
+    const blockLag = Math.random() < 0.9 ? 0 : randInt(1, 2);
+    const resolveMs = randInt(20, 80);
+    const uptime = (99.0 + rand(0, 0.9)).toFixed(2);
+    const pinCount = randInt(340, 380);
+
+    // Gateway
+    document.getElementById('gwLatency').textContent = latP50 + 'ms';
+    document.getElementById('gwLatency').className = 'metric-val ' + (latP50 < 150 ? 'ok' : 'warn');
+    document.getElementById('gwLatencyP99').textContent = latP99 + 'ms';
+    document.getElementById('gwErrorRate').textContent = errRate + '%';
+    document.getElementById('gwErrorRate').className = 'metric-val ' + (parseFloat(errRate) < 0.2 ? 'ok' : 'warn');
+    document.getElementById('gwUptime').textContent = uptime + '%';
+
+    // Chain
+    document.getElementById('chainBlockLag').textContent = blockLag;
+    document.getElementById('chainBlockLag').className = 'metric-val ' + (blockLag === 0 ? 'ok' : 'warn');
+    document.getElementById('chainResolve').textContent = resolveMs + 'ms';
+    document.getElementById('chainResolve').className = 'metric-val ' + (resolveMs < 60 ? 'ok' : 'warn');
+
+    // IPFS
+    document.getElementById('ipfsCacheHit').textContent = cacheHit + '%';
+    document.getElementById('ipfsCacheHit').className = 'metric-val ' + (cacheHit > 65 ? 'ok' : 'warn');
+    document.getElementById('ipfsPinCount').textContent = pinCount;
+
+    // Sparklines
+    buildSpark('gwSpark',    Array.from({length: 24}, () => randInt(50, 180)));
+    buildSpark('chainSpark', Array.from({length: 24}, () => randInt(10, 80)));
+    buildSpark('ipfsSpark',  Array.from({length: 24}, () => randInt(40, 100)));
+
+    // Uptime bar
+    const uptimeBar = document.getElementById('uptimeBar');
+    const segs = Array.from({length: 90}, (_, i) => {
+      if (i < 85) return 'ok';
+      if (i === 87 || i === 88) return 'warn';
+      return 'ok';
+    });
+    uptimeBar.innerHTML = segs.map(s =>
+      `<div class="uptime-seg ${s}" title="${s}"></div>`
+    ).join('');
+    document.getElementById('uptimePct').textContent = uptime + '% uptime';
+  }
+
+  refreshMetrics();
+  setInterval(refreshMetrics, 8000);
+
+  // Incidents
+  const incidents = [
+    { ts: '2026-02-17T00:28:11Z', comp: 'ipfs_upstream',   sev: 'warn',  status: 'resolved', detail: 'gateway origin misconfigured; env var typo patched' },
+    { ts: '2026-02-17T00:34:02Z', comp: 'name_resolution', sev: 'ok',    status: 'resolved', detail: 'contract verified for `alice` — CID returned correctly' },
+    { ts: '2026-02-17T00:40:21Z', comp: 'route_config',    sev: 'ok',    status: 'resolved', detail: 'wildcard route attached to worker; all subdomains routing' },
+    { ts: '2026-02-16T14:11:00Z', comp: 'gateway',         sev: 'ok',    status: 'resolved', detail: 'scheduled maintenance window — 4 min downtime' },
+    { ts: '2026-02-15T09:22:45Z', comp: 'base_rpc',        sev: 'warn',  status: 'resolved', detail: 'rpc latency spike (+200ms p99); self-resolved after 8min' },
+  ];
+
+  const tbody = document.getElementById('incidentFeed');
+  tbody.innerHTML = incidents.map(inc => `
+    <tr>
+      <td class="dim">${inc.ts}</td>
+      <td>${inc.comp}</td>
+      <td class="${inc.sev}">${inc.sev.toUpperCase()}</td>
+      <td class="ok">${inc.status.toUpperCase()}</td>
+      <td>${inc.detail}</td>
+    </tr>
+  `).join('');
+
+  // Synthetic check
+  document.getElementById('runCheck').addEventListener('click', () => {
+    const name = (document.getElementById('checkName').value || '').trim().toLowerCase();
+    const cidPfx = (document.getElementById('checkCid').value || '').trim().toLowerCase();
+    const out = document.getElementById('checkOutput');
+
+    const latency = randInt(90, 220);
+    const cache = randInt(60, 82);
+    const blockLag = Math.random() < 0.9 ? 0 : 1;
+    const validCid = cidPfx.startsWith('bafy') || cidPfx.startsWith('k') || cidPfx.startsWith('bafk');
+    const ts = new Date().toISOString();
+
+    const lines = [
+      `<span class="t-key">synthetic_check_start</span>   ts=${ts}`,
+      `<span class="t-key">target_name</span>             ${name}.ipns.io`,
+      ``,
+      `<span class="t-dim">--- registry ---</span>`,
+      `<span class="t-key">contract_call</span>           resolve("${name}")`,
+      `<span class="t-key">rpc_response</span>            <span class="${validCid ? 't-ok' : 't-warn'}">${validCid ? `${cidPfx}...` : 'EMPTY (name may not be registered)'}</span>`,
+      `<span class="t-key">resolve_ms</span>              ${randInt(15, 60)}`,
+      ``,
+      `<span class="t-dim">--- gateway ---</span>`,
+      `<span class="t-key">healthz</span>                 <span class="t-ok">200 OK</span>`,
+      `<span class="t-key">latency_ms</span>              ${latency}`,
+      `<span class="t-key">cache_hit</span>               ${cache}%`,
+      `<span class="t-key">block_lag</span>               ${blockLag}`,
+      ``,
+      `<span class="t-dim">--- ipfs ---</span>`,
+      `<span class="t-key">upstream</span>                <span class="t-ok">REACHABLE</span>`,
+      `<span class="t-key">fetch_result</span>            <span class="${validCid ? 't-ok' : 't-warn'}">${validCid ? '200 OK · content served' : 'SKIP · no CID to fetch'}</span>`,
+      ``,
+      `<span class="t-dim">--- result ---</span>`,
+      `<span class="t-key">overall</span>                 <span class="${validCid ? 't-ok' : 't-warn'}">${validCid ? '✓ PASS' : '⚠ WARN · register name and set CID'}</span>`,
+      `<span class="t-key">checked_at</span>              ${ts}`,
+    ];
+
+    out.innerHTML = lines.join('\n');
+  });
+})();
+</script>
+</body>
+</html>

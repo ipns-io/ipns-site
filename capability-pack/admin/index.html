@@ -1,0 +1,103 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>admin.ipns.io mock</title>
+<link rel="stylesheet" href="../assets/theme.css" />
+</head>
+<body>
+<header class="top">
+  <div class="brand">admin.ipns.io</div>
+  <span class="badge">ops console mock</span>
+</header>
+<main class="wrap">
+  <section class="hero">
+    <h1>Name ops without backend lock-in.</h1>
+    <p>Build static operational tooling that prepares deterministic commands and onchain actions.</p>
+    <div class="nav-links">
+      <a href="../www/index.html">www</a>
+      <a href="../docs/index.html">docs</a>
+      <a href="../admin/index.html">admin</a>
+      <a href="../app/index.html">app</a>
+      <a href="../status/index.html">status</a>
+    </div>
+  </section>
+
+  <section class="grid">
+    <article class="card span-4">
+      <h3>Registry snapshot</h3>
+      <div class="kpis">
+        <div class="kpi"><div class="label">contract</div><div class="value" style="font-size:14px;">0x7Bb7...Cc2d</div></div>
+        <div class="kpi"><div class="label">network</div><div class="value">base sepolia</div></div>
+        <div class="kpi"><div class="label">grace period</div><div class="value">90d</div></div>
+        <div class="kpi"><div class="label">status</div><div class="value ok">healthy</div></div>
+      </div>
+    </article>
+
+    <article class="card span-8">
+      <h3>CID update builder</h3>
+      <label>Name
+        <input id="adminName" value="alice" />
+      </label>
+      <label style="margin-top:10px;">New CID
+        <textarea id="adminCid" rows="3">bafybeibi4xw34bcyax6xtmdddapz7nmyew5rdhtiuf7kodjj2eq4udco6u</textarea>
+      </label>
+      <div class="controls" style="margin-top:10px;">
+        <button id="buildUpdate">Build command</button>
+        <button class="secondary" id="copyUpdate">Copy command</button>
+      </div>
+      <pre class="code" id="adminCmd" style="margin-top:10px; display:none;"></pre>
+      <p class="muted" id="adminOut"></p>
+    </article>
+
+    <article class="card span-12">
+      <h3>Reserved names (example policy set)</h3>
+      <table class="table">
+        <tr><th>Name</th><th>Reason</th><th>State</th></tr>
+        <tr><td>www</td><td>public landing</td><td class="ok">reserved</td></tr>
+        <tr><td>docs</td><td>developer docs</td><td class="ok">reserved</td></tr>
+        <tr><td>admin</td><td>ops/admin console</td><td class="ok">reserved</td></tr>
+        <tr><td>app</td><td>registration app surface</td><td class="ok">reserved</td></tr>
+        <tr><td>status</td><td>network + gateway status</td><td class="ok">reserved</td></tr>
+      </table>
+    </article>
+  </section>
+
+  <p class="footer">admin build timestamp: <span data-now></span></p>
+</main>
+<script src="../assets/app.js"></script>
+<script>
+(function () {
+  const cmd = document.getElementById('adminCmd');
+  const out = document.getElementById('adminOut');
+
+  function render() {
+    const name = (document.getElementById('adminName').value || '').trim().toLowerCase();
+    const cid = (document.getElementById('adminCid').value || '').trim();
+    if (!name || !cid) return '';
+    return 'cast send --rpc-url "$RPC_URL" --private-key "$PRIVATE_KEY" "$CONTRACT" "setCID(string,string)" "' + name + '" "' + cid + '"';
+  }
+
+  document.getElementById('buildUpdate').addEventListener('click', () => {
+    const built = render();
+    if (!built) return;
+    cmd.style.display = 'block';
+    cmd.textContent = built;
+    out.innerHTML = '<span class="ok">command generated</span>';
+  });
+
+  document.getElementById('copyUpdate').addEventListener('click', async () => {
+    const built = render();
+    if (!built) return;
+    try {
+      await navigator.clipboard.writeText(built);
+      out.innerHTML = '<span class="ok">command copied</span>';
+    } catch (_) {
+      out.innerHTML = '<span class="warn">clipboard blocked; copy manually</span>';
+    }
+  });
+})();
+</script>
+</body>
+</html>

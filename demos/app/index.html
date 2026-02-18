@@ -1,0 +1,788 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>app.ipns.io — Register a Name</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@300;400;500;600;700&family=JetBrains+Mono:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg:       #f8f9fc;
+    --white:    #ffffff;
+    --fg:       #0f1117;
+    --dim:      #6b7280;
+    --faint:    #9ca3af;
+    --border:   #e5e7eb;
+    --blue:     #2563eb;
+    --blue-lt:  #eff6ff;
+    --blue-mid: #bfdbfe;
+    --green:    #059669;
+    --green-lt: #ecfdf5;
+    --red:      #dc2626;
+    --red-lt:   #fef2f2;
+    --yellow:   #d97706;
+    --shadow:   0 1px 3px rgba(0,0,0,0.06), 0 4px 16px rgba(0,0,0,0.04);
+    --shadow-lg:0 8px 32px rgba(0,0,0,0.08);
+    --radius:   16px;
+    --sans:     'Sora', sans-serif;
+    --mono:     'JetBrains Mono', monospace;
+  }
+
+  html { font-size: 15px; }
+
+  body {
+    background: var(--bg);
+    color: var(--fg);
+    font-family: var(--sans);
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+  }
+
+  /* ── TOPBAR ── */
+  .topbar {
+    background: var(--white);
+    border-bottom: 1px solid var(--border);
+    height: 60px;
+    display: flex;
+    align-items: center;
+    padding: 0 24px;
+    gap: 16px;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+  }
+
+  .topbar-logo {
+    font-weight: 700;
+    font-size: 16px;
+    color: var(--fg);
+    text-decoration: none;
+    letter-spacing: -0.3px;
+  }
+
+  .topbar-logo span { color: var(--blue); }
+
+  .topbar-sep { width: 1px; height: 24px; background: var(--border); }
+
+  .topbar-tag {
+    font-size: 12px;
+    color: var(--faint);
+    flex: 1;
+  }
+
+  .sub-nav-pill {
+    display: flex;
+    gap: 4px;
+    background: var(--bg);
+    padding: 4px;
+    border-radius: 10px;
+    border: 1px solid var(--border);
+  }
+
+  .sub-nav-pill a {
+    padding: 5px 14px;
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--dim);
+    text-decoration: none;
+    border-radius: 7px;
+    transition: all 0.15s;
+  }
+  .sub-nav-pill a:hover { background: var(--white); color: var(--fg); }
+  .sub-nav-pill a.active { background: var(--blue); color: white; }
+
+  /* ── PAGE LAYOUT ── */
+  .page {
+    display: grid;
+    grid-template-columns: 1fr 380px;
+    gap: 24px;
+    max-width: 1100px;
+    margin: 0 auto;
+    padding: 40px 24px;
+    width: 100%;
+    align-items: start;
+  }
+
+  /* ── CARD ── */
+  .card {
+    background: var(--white);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+    overflow: hidden;
+  }
+
+  .card-header {
+    padding: 20px 24px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .card-title {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--fg);
+    letter-spacing: -0.2px;
+  }
+
+  .card-body { padding: 24px; }
+
+  /* ── NAME SEARCH ── */
+  .name-search-box {
+    background: var(--white);
+    border: 2px solid var(--border);
+    border-radius: 12px;
+    display: flex;
+    align-items: stretch;
+    overflow: hidden;
+    transition: border-color 0.2s, box-shadow 0.2s;
+  }
+  .name-search-box:focus-within {
+    border-color: var(--blue);
+    box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.08);
+  }
+
+  .search-prefix {
+    padding: 0 16px;
+    display: flex;
+    align-items: center;
+    background: var(--bg);
+    border-right: 2px solid var(--border);
+    font-family: var(--mono);
+    font-size: 13px;
+    color: var(--faint);
+    white-space: nowrap;
+    user-select: none;
+  }
+
+  #nameInput {
+    flex: 1;
+    border: none;
+    outline: none;
+    padding: 16px 20px;
+    font-family: var(--sans);
+    font-size: 22px;
+    font-weight: 600;
+    color: var(--fg);
+    letter-spacing: -0.5px;
+    background: transparent;
+    width: 100%;
+    min-width: 0;
+  }
+
+  .search-suffix {
+    padding: 0 16px;
+    display: flex;
+    align-items: center;
+    background: var(--bg);
+    border-left: 2px solid var(--border);
+    font-family: var(--mono);
+    font-size: 13px;
+    color: var(--faint);
+    white-space: nowrap;
+    user-select: none;
+  }
+
+  /* ── AVAILABILITY BADGE ── */
+  .avail-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 13px;
+    font-weight: 500;
+    padding: 6px 12px;
+    border-radius: 20px;
+  }
+  .avail-badge.available { background: var(--green-lt); color: var(--green); }
+  .avail-badge.taken     { background: var(--red-lt);   color: var(--red); }
+  .avail-badge.checking  { background: var(--blue-lt);  color: var(--blue); }
+  .avail-badge.idle      { background: var(--bg);       color: var(--faint); border: 1px solid var(--border); }
+
+  .avail-dot {
+    width: 8px; height: 8px; border-radius: 50%;
+    background: currentColor;
+  }
+
+  /* ── DURATION SELECTOR ── */
+  .duration-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 8px;
+    margin-top: 16px;
+  }
+
+  .dur-btn {
+    padding: 14px 8px;
+    border: 2px solid var(--border);
+    border-radius: 10px;
+    background: var(--white);
+    cursor: pointer;
+    text-align: center;
+    transition: all 0.15s;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+  }
+  .dur-btn:hover { border-color: var(--blue-mid); background: var(--blue-lt); }
+  .dur-btn.active {
+    border-color: var(--blue);
+    background: var(--blue-lt);
+    box-shadow: 0 0 0 1px var(--blue);
+  }
+
+  .dur-years {
+    font-size: 20px;
+    font-weight: 700;
+    color: var(--fg);
+    line-height: 1;
+  }
+  .dur-btn.active .dur-years { color: var(--blue); }
+
+  .dur-label {
+    font-size: 10px;
+    font-weight: 500;
+    color: var(--faint);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+  .dur-btn.active .dur-label { color: var(--blue); opacity: 0.7; }
+
+  .dur-discount {
+    font-size: 9px;
+    font-weight: 600;
+    color: var(--green);
+    background: var(--green-lt);
+    padding: 1px 5px;
+    border-radius: 4px;
+  }
+
+  /* ── PRICE DISPLAY ── */
+  .price-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 16px 0;
+    border-top: 1px solid var(--border);
+    margin-top: 16px;
+  }
+
+  .price-label {
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--dim);
+  }
+
+  .price-value {
+    font-size: 32px;
+    font-weight: 700;
+    color: var(--fg);
+    letter-spacing: -1px;
+  }
+
+  .price-eth {
+    font-size: 13px;
+    font-family: var(--mono);
+    color: var(--faint);
+    text-align: right;
+    margin-top: 2px;
+  }
+
+  /* ── CTA BUTTON ── */
+  .cta-btn {
+    width: 100%;
+    padding: 16px;
+    background: var(--blue);
+    color: white;
+    border: 1px solid transparent;
+    border-radius: 12px;
+    font-family: var(--sans);
+    font-size: 15px;
+    font-weight: 600;
+    cursor: pointer;
+    letter-spacing: -0.2px;
+    transition: all 0.15s;
+    margin-top: 16px;
+  }
+  .cta-btn:hover {
+    background: rgba(37, 99, 235, 0.14);
+    color: var(--blue);
+    border: 1px solid rgba(37, 99, 235, 0.45);
+    transform: translateY(-1px);
+    box-shadow: 0 6px 20px rgba(37,99,235,0.18);
+  }
+  .cta-btn:active { transform: translateY(0); }
+
+  .cta-secondary {
+    width: 100%;
+    padding: 12px;
+    background: transparent;
+    color: var(--dim);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    font-family: var(--sans);
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.15s;
+    margin-top: 8px;
+  }
+  .cta-secondary:hover { border-color: var(--fg); color: var(--fg); }
+
+  /* ── TX PAYLOAD ── */
+  .payload-card {
+    background: #0f1117;
+    border-radius: 12px;
+    overflow: hidden;
+    margin-top: 16px;
+    display: none;
+  }
+
+  .payload-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px 16px;
+    border-bottom: 1px solid rgba(255,255,255,0.06);
+  }
+
+  .payload-label {
+    font-family: var(--mono);
+    font-size: 11px;
+    color: rgba(255,255,255,0.4);
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+  }
+
+  .payload-copy {
+    font-family: var(--mono);
+    font-size: 10px;
+    color: rgba(255,255,255,0.4);
+    background: rgba(255,255,255,0.06);
+    border: 1px solid rgba(255,255,255,0.1);
+    padding: 3px 10px;
+    cursor: pointer;
+    transition: all 0.1s;
+  }
+  .payload-copy:hover { color: white; border-color: rgba(255,255,255,0.3); }
+
+  .payload-body {
+    padding: 16px;
+    font-family: var(--mono);
+    font-size: 12px;
+    line-height: 1.8;
+    color: rgba(255,255,255,0.75);
+    white-space: pre;
+    overflow-x: auto;
+  }
+
+  .j-key   { color: #79c0ff; }
+  .j-str   { color: #a5d6ff; }
+  .j-num   { color: #ffa657; }
+  .j-bool  { color: #ff7b72; }
+
+  /* ── RIGHT SIDEBAR ── */
+  .sidebar-stack { display: flex; flex-direction: column; gap: 16px; }
+
+  /* ── PRICING TABLE ── */
+  .price-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  .price-table th {
+    padding: 10px 16px;
+    text-align: left;
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--faint);
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    border-bottom: 1px solid var(--border);
+  }
+  .price-table td {
+    padding: 11px 16px;
+    border-bottom: 1px solid var(--border);
+    color: var(--dim);
+  }
+  .price-table td.name { font-weight: 600; color: var(--fg); font-family: var(--mono); }
+  .price-table td.usd  { font-weight: 600; color: var(--fg); }
+  .price-table tr:last-child td { border-bottom: none; }
+  .price-table tr.highlight { background: var(--blue-lt); }
+  .price-table tr.highlight td { color: var(--blue); }
+
+  /* ── FEATURE LIST ── */
+  .feature-list { list-style: none; display: flex; flex-direction: column; gap: 12px; }
+  .feature-item {
+    display: flex;
+    gap: 12px;
+    align-items: flex-start;
+    font-size: 13px;
+    color: var(--dim);
+    line-height: 1.5;
+  }
+  .feature-icon {
+    width: 20px; height: 20px;
+    background: var(--green-lt);
+    color: var(--green);
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 10px;
+    flex-shrink: 0;
+    margin-top: 1px;
+  }
+
+  /* ── STEP GUIDE ── */
+  .step-list { display: flex; flex-direction: column; gap: 0; }
+  .step-item {
+    display: grid;
+    grid-template-columns: 32px 1fr;
+    gap: 12px;
+    padding: 12px 0;
+    border-bottom: 1px solid var(--border);
+    align-items: start;
+  }
+  .step-item:last-child { border-bottom: none; }
+  .step-num {
+    width: 28px; height: 28px;
+    background: var(--blue-lt);
+    color: var(--blue);
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 12px; font-weight: 700;
+    flex-shrink: 0;
+  }
+  .step-text { font-size: 13px; color: var(--dim); line-height: 1.5; padding-top: 4px; }
+  .step-text strong { color: var(--fg); font-weight: 600; }
+
+  /* ── PILL TAGS ── */
+  .tags { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 12px; }
+  .tag {
+    font-size: 11px;
+    font-weight: 500;
+    padding: 4px 10px;
+    border-radius: 20px;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    color: var(--dim);
+  }
+</style>
+</head>
+<body>
+
+<header class="topbar">
+  <a href="https://www.ipns.io/" class="topbar-logo">IPNS<span>.</span>io</a>
+  <div class="topbar-sep"></div>
+  <span class="topbar-tag">Register your name on Base</span>
+  <nav class="sub-nav-pill">
+    <a href="https://www.ipns.io/">www</a>
+    <a href="https://docs.ipns.io/">docs</a>
+    <a href="https://admin.ipns.io/">admin</a>
+    <a href="https://app.ipns.io/" class="active">app</a>
+    <a href="https://status.ipns.io/">status</a>
+  </nav>
+</header>
+
+<div class="page">
+
+  <!-- LEFT: MAIN REGISTRATION FLOW -->
+  <div>
+    <!-- STEP 1: Name Search -->
+    <div class="card" style="margin-bottom: 16px;">
+      <div class="card-header">
+        <span class="card-title">Step 1 — Find your name</span>
+        <span class="avail-badge idle" id="availBadge">
+          <span class="avail-dot"></span>enter a name
+        </span>
+      </div>
+      <div class="card-body">
+        <div class="name-search-box">
+          <span class="search-prefix">↗</span>
+          <input id="nameInput" type="text" value="alice" autocomplete="off" spellcheck="false" placeholder="yourname" />
+          <span class="search-suffix">.ipns.io</span>
+        </div>
+        <div class="tags">
+          <span class="tag">a-z, 0-9, hyphens</span>
+          <span class="tag">1–63 characters</span>
+          <span class="tag">case-insensitive</span>
+          <span class="tag">no leading/trailing hyphens</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- STEP 2: Duration -->
+    <div class="card" style="margin-bottom: 16px;">
+      <div class="card-header">
+        <span class="card-title">Step 2 — Choose duration</span>
+      </div>
+      <div class="card-body">
+        <div class="duration-grid">
+          <button class="dur-btn" data-years="1">
+            <span class="dur-years">1</span>
+            <span class="dur-label">year</span>
+          </button>
+          <button class="dur-btn" data-years="2">
+            <span class="dur-years">2</span>
+            <span class="dur-label">years</span>
+            <span class="dur-discount">–0%</span>
+          </button>
+          <button class="dur-btn" data-years="3">
+            <span class="dur-years">3</span>
+            <span class="dur-label">years</span>
+            <span class="dur-discount">–0%</span>
+          </button>
+          <button class="dur-btn active" data-years="5">
+            <span class="dur-years">5</span>
+            <span class="dur-label">years</span>
+            <span class="dur-discount">best</span>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- STEP 3: Confirm + Payload -->
+    <div class="card">
+      <div class="card-header">
+        <span class="card-title">Step 3 — Confirm & register</span>
+      </div>
+      <div class="card-body">
+
+        <div class="price-row">
+          <div>
+            <div class="price-label">Total due</div>
+            <div style="font-size:12px; color:var(--faint); margin-top:2px;" id="priceBreakdown">5 chars × $1 × 5 years</div>
+          </div>
+          <div style="text-align: right;">
+            <div class="price-value" id="priceUsd">$5</div>
+            <div class="price-eth" id="priceEth">≈ 0.00185 ETH</div>
+          </div>
+        </div>
+
+        <button class="cta-btn" id="prepareBtn">Prepare Registration →</button>
+        <button class="cta-secondary" id="showPayloadBtn">Show transaction payload</button>
+
+        <div class="payload-card" id="payloadCard">
+          <div class="payload-header">
+            <span class="payload-label">Transaction Payload</span>
+            <button class="payload-copy" id="copyPayloadBtn">Copy JSON</button>
+          </div>
+          <div class="payload-body" id="payloadBody"></div>
+        </div>
+
+        <div style="margin-top:16px; padding:12px 16px; background: var(--bg); border-radius:8px; border:1px solid var(--border);">
+          <p style="font-size:12px; color:var(--faint); line-height:1.6;">
+            Price is paid in ETH at current spot. Use <code style="font-family:var(--mono); font-size:11px; background:var(--border); padding:1px 4px; border-radius:3px;">getPrice(name, years)</code> on the contract for the exact wei amount before sending. Excess ETH is refunded automatically.
+          </p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- RIGHT: SIDEBAR -->
+  <div class="sidebar-stack">
+
+    <div class="card">
+      <div class="card-header">
+        <span class="card-title">Pricing</span>
+        <span style="font-size:11px; color:var(--faint);">USD equiv.</span>
+      </div>
+      <table class="price-table">
+        <thead>
+          <tr>
+            <th>Length</th>
+            <th>Name example</th>
+            <th>/ year</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr><td class="name">1 char</td><td class="name" style="font-weight:400;">a.ipns.io</td><td class="usd">$50</td></tr>
+          <tr><td class="name">2 chars</td><td class="name" style="font-weight:400;">ab.ipns.io</td><td class="usd">$25</td></tr>
+          <tr><td class="name">3 chars</td><td class="name" style="font-weight:400;">eth.ipns.io</td><td class="usd">$10</td></tr>
+          <tr><td class="name">4 chars</td><td class="name" style="font-weight:400;">ipfs.ipns.io</td><td class="usd">$5</td></tr>
+          <tr class="highlight"><td class="name">5+ chars</td><td class="name" style="font-weight:400; color:var(--blue);">alice.ipns.io</td><td class="usd">$1</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="card">
+      <div class="card-header"><span class="card-title">How it works</span></div>
+      <div class="card-body">
+        <div class="step-list">
+          <div class="step-item">
+            <div class="step-num">1</div>
+            <div class="step-text"><strong>Register your name</strong> — one transaction on Base. Annual fee in ETH at spot price.</div>
+          </div>
+          <div class="step-item">
+            <div class="step-num">2</div>
+            <div class="step-text"><strong>Pin your content to IPFS</strong> — Pinata, web3.storage, or any pinning service. Get a CID back.</div>
+          </div>
+          <div class="step-item">
+            <div class="step-num">3</div>
+            <div class="step-text"><strong>Call setCID</strong> — point your name at the CID. Sub-cent gas. Done in seconds.</div>
+          </div>
+          <div class="step-item">
+            <div class="step-num">4</div>
+            <div class="step-text"><strong>Share the URL</strong> — <code style="font-family:var(--mono); font-size:11px;">yourname.ipns.io</code> works in any browser.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-header"><span class="card-title">What you get</span></div>
+      <div class="card-body">
+        <ul class="feature-list">
+          <li class="feature-item">
+            <span class="feature-icon">✓</span>
+            <span>Human-readable URL that works in every browser — no extension needed</span>
+          </li>
+          <li class="feature-item">
+            <span class="feature-icon">✓</span>
+            <span>Onchain ownership record — you own the name, not us</span>
+          </li>
+          <li class="feature-item">
+            <span class="feature-icon">✓</span>
+            <span>Update your content anytime for less than a penny</span>
+          </li>
+          <li class="feature-item">
+            <span class="feature-icon">✓</span>
+            <span>90-day grace period on renewal — no sudden expiry surprises</span>
+          </li>
+          <li class="feature-item">
+            <span class="feature-icon">✓</span>
+            <span>Transfer the name to any address — it's yours to keep or sell</span>
+          </li>
+        </ul>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+(function () {
+  const CONTRACT = '0x7Bb7f1C90DeDd39F58D4F0EDc96B9722997CCc2d';
+
+  function tier(len) {
+    if (len <= 1) return { usd: 50, eth: 0.01852 };
+    if (len === 2) return { usd: 25, eth: 0.00926 };
+    if (len === 3) return { usd: 10, eth: 0.00370 };
+    if (len === 4) return { usd: 5,  eth: 0.00185 };
+    return { usd: 1, eth: 0.00037 };
+  }
+
+  let selectedYears = 5;
+
+  // Duration buttons
+  document.querySelectorAll('.dur-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.dur-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      selectedYears = Number(btn.dataset.years);
+      update();
+    });
+  });
+
+  // Name input
+  const nameInput = document.getElementById('nameInput');
+  let debounceTimer;
+  nameInput.addEventListener('input', () => {
+    clearTimeout(debounceTimer);
+    setAvailability('checking');
+    debounceTimer = setTimeout(() => {
+      const name = (nameInput.value || '').trim().toLowerCase();
+      if (!name) { setAvailability('idle'); return; }
+      // Simulate check — real version calls isAvailable() on contract
+      setTimeout(() => {
+        const taken = ['alice', 'bob', 'eth', 'ipfs'].includes(name);
+        setAvailability(taken ? 'taken' : 'available');
+      }, 400);
+      update();
+    }, 300);
+  });
+
+  function setAvailability(state) {
+    const badge = document.getElementById('availBadge');
+    const states = {
+      idle:      { cls: 'idle',      text: 'enter a name' },
+      checking:  { cls: 'checking',  text: 'checking...' },
+      available: { cls: 'available', text: 'available' },
+      taken:     { cls: 'taken',     text: 'taken' },
+    };
+    const s = states[state] || states.idle;
+    badge.className = `avail-badge ${s.cls}`;
+    badge.innerHTML = `<span class="avail-dot"></span>${s.text}`;
+  }
+
+  function update() {
+    const name = (nameInput.value || '').trim().toLowerCase() || 'alice';
+    const t = tier(name.length);
+    const totalUsd = t.usd * selectedYears;
+    const totalEth = (t.eth * selectedYears).toFixed(5);
+
+    document.getElementById('priceUsd').textContent = `$${totalUsd}`;
+    document.getElementById('priceEth').textContent = `≈ ${totalEth} ETH`;
+    document.getElementById('priceBreakdown').textContent =
+      `${name.length} char${name.length !== 1 ? 's' : ''} × $${t.usd} × ${selectedYears} year${selectedYears !== 1 ? 's' : ''}`;
+  }
+
+  function buildPayload() {
+    const name = (nameInput.value || '').trim().toLowerCase() || 'alice';
+    const t = tier(name.length);
+    const totalEth = (t.eth * selectedYears).toFixed(5);
+    const totalUsd = t.usd * selectedYears;
+
+    return {
+      to: CONTRACT,
+      method: 'register(string,uint8)',
+      args: [name, selectedYears],
+      valueEth: totalEth,
+      estimatedUsd: `$${totalUsd}`,
+      note: 'Use getPrice(name, years) on contract for exact wei amount'
+    };
+  }
+
+  function renderPayload() {
+    const p = buildPayload();
+    const json = JSON.stringify(p, null, 2);
+    // Syntax highlight
+    const highlighted = json
+      .replace(/("[\w]+")\s*:/g, '<span class="j-key">$1</span>:')
+      .replace(/:\s*(".*?")/g, ': <span class="j-str">$1</span>')
+      .replace(/:\s*(\d[\d.]*)/g, ': <span class="j-num">$1</span>');
+    document.getElementById('payloadBody').innerHTML = highlighted;
+  }
+
+  document.getElementById('prepareBtn').addEventListener('click', () => {
+    const payloadCard = document.getElementById('payloadCard');
+    payloadCard.style.display = 'block';
+    renderPayload();
+  });
+
+  document.getElementById('showPayloadBtn').addEventListener('click', () => {
+    const payloadCard = document.getElementById('payloadCard');
+    if (payloadCard.style.display === 'block') {
+      payloadCard.style.display = 'none';
+    } else {
+      payloadCard.style.display = 'block';
+      renderPayload();
+    }
+  });
+
+  document.getElementById('copyPayloadBtn').addEventListener('click', async () => {
+    try {
+      await navigator.clipboard.writeText(JSON.stringify(buildPayload(), null, 2));
+      document.getElementById('copyPayloadBtn').textContent = 'Copied!';
+      setTimeout(() => { document.getElementById('copyPayloadBtn').textContent = 'Copy JSON'; }, 2000);
+    } catch {}
+  });
+
+  // Initial state
+  setAvailability('available');
+  update();
+})();
+</script>
+</body>
+</html>

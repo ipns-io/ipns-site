@@ -1,0 +1,835 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>IPNS.io — Mutable Names for Immutable Content</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;0,900;1,400;1,700&family=DM+Mono:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --ink: #0a0a0a;
+    --paper: #f5f0e8;
+    --cream: #ede8dc;
+    --accent: #c8402a;
+    --gold: #b8860b;
+    --muted: #6b6560;
+    --border: #d4cfc6;
+  }
+
+  html { font-size: 16px; scroll-behavior: smooth; }
+
+  body {
+    background: var(--paper);
+    color: var(--ink);
+    font-family: 'DM Mono', monospace;
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* ── MASTHEAD ── */
+  .masthead {
+    border-bottom: 2px solid var(--ink);
+    padding: 0 48px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    height: 64px;
+    position: sticky;
+    top: 0;
+    background: var(--paper);
+    z-index: 100;
+  }
+
+  .masthead-logo {
+    font-family: 'Playfair Display', serif;
+    font-size: 22px;
+    font-weight: 900;
+    letter-spacing: -0.5px;
+    color: var(--ink);
+    text-decoration: none;
+  }
+
+  .masthead-logo span { color: var(--accent); }
+
+  .masthead-nav {
+    display: flex;
+    gap: 32px;
+    list-style: none;
+    font-size: 11px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+  }
+
+  .masthead-nav a {
+    color: var(--muted);
+    text-decoration: none;
+    transition: color 0.15s;
+  }
+  .masthead-nav a:hover { color: var(--ink); }
+
+  .masthead-cta {
+    background: var(--ink);
+    color: var(--paper);
+    padding: 8px 20px;
+    font-size: 11px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    text-decoration: none;
+    transition: all 0.15s;
+  }
+  .masthead-cta:hover {
+    background: rgba(208, 65, 41, 0.16);
+    border-color: var(--accent);
+    box-shadow: inset 0 0 0 1px var(--accent);
+  }
+
+  /* ── HERO ── */
+  .hero {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    min-height: calc(100vh - 64px);
+    border-bottom: 2px solid var(--ink);
+  }
+
+  .hero-left {
+    padding: 80px 48px;
+    border-right: 2px solid var(--ink);
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+  }
+
+  .hero-eyebrow {
+    font-size: 11px;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: var(--accent);
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 48px;
+  }
+
+  .hero-eyebrow::before {
+    content: '';
+    display: block;
+    width: 32px;
+    height: 1px;
+    background: var(--accent);
+  }
+
+  .hero-headline {
+    font-family: 'Playfair Display', serif;
+    font-size: clamp(52px, 7vw, 96px);
+    line-height: 0.95;
+    font-weight: 900;
+    letter-spacing: -2px;
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+  }
+
+  .hero-headline em {
+    font-style: italic;
+    color: var(--accent);
+  }
+
+  .hero-sub {
+    font-size: 13px;
+    line-height: 1.8;
+    color: var(--muted);
+    max-width: 400px;
+    padding-top: 40px;
+    border-top: 1px solid var(--border);
+  }
+
+  /* ── REGISTER PANEL ── */
+  .hero-right {
+    padding: 80px 48px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    gap: 48px;
+  }
+
+  .register-label {
+    font-size: 11px;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 16px;
+  }
+
+  .name-input-wrap {
+    display: flex;
+    align-items: stretch;
+    border: 2px solid var(--ink);
+    background: white;
+    transition: border-color 0.15s;
+  }
+
+  .name-input-wrap:focus-within { border-color: var(--accent); }
+
+  .name-prefix {
+    background: var(--cream);
+    border-right: 2px solid var(--ink);
+    padding: 0 16px;
+    display: flex;
+    align-items: center;
+    font-size: 14px;
+    color: var(--muted);
+    white-space: nowrap;
+  }
+
+  #nameInput {
+    border: none;
+    outline: none;
+    padding: 16px 20px;
+    font-family: 'Playfair Display', serif;
+    font-size: 28px;
+    font-weight: 700;
+    color: var(--ink);
+    background: transparent;
+    width: 100%;
+  }
+
+  .name-suffix {
+    background: var(--cream);
+    border-left: 2px solid var(--ink);
+    padding: 0 16px;
+    display: flex;
+    align-items: center;
+    font-size: 13px;
+    color: var(--muted);
+    white-space: nowrap;
+  }
+
+  .year-row {
+    display: flex;
+    gap: 8px;
+  }
+
+  .year-btn {
+    flex: 1;
+    padding: 12px;
+    border: 2px solid var(--border);
+    background: transparent;
+    font-family: 'DM Mono', monospace;
+    font-size: 12px;
+    letter-spacing: 0.05em;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+  .year-btn.active {
+    border-color: var(--ink);
+    background: var(--ink);
+    color: var(--paper);
+  }
+  .year-btn:hover:not(.active) { border-color: var(--ink); }
+
+  .price-display {
+    padding: 24px;
+    border: 2px solid var(--border);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  .price-amount {
+    font-family: 'Playfair Display', serif;
+    font-size: 48px;
+    font-weight: 900;
+    color: var(--ink);
+    line-height: 1;
+  }
+
+  .price-period {
+    font-size: 11px;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    text-align: right;
+  }
+
+  .register-btn {
+    width: 100%;
+    padding: 20px;
+    background: var(--ink);
+    color: var(--paper);
+    border: 2px solid var(--ink);
+    font-family: 'DM Mono', monospace;
+    font-size: 12px;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+  .register-btn:hover {
+    background: rgba(208, 65, 41, 0.16);
+    border-color: var(--accent);
+    color: var(--ink);
+    box-shadow: inset 0 0 0 1px var(--accent);
+  }
+
+  .cmd-block {
+    padding: 16px;
+    background: var(--ink);
+    color: #00ff88;
+    font-size: 11px;
+    line-height: 1.7;
+    white-space: pre;
+    overflow-x: auto;
+    display: none;
+    border: 2px solid var(--ink);
+  }
+
+  /* ── STRIP / TICKER ── */
+  .ticker {
+    border-top: 2px solid var(--ink);
+    border-bottom: 2px solid var(--ink);
+    background: var(--ink);
+    color: var(--paper);
+    padding: 14px 0;
+    overflow: hidden;
+    white-space: nowrap;
+  }
+
+  .ticker-inner {
+    display: inline-block;
+    animation: ticker 20s linear infinite;
+  }
+
+  .ticker-inner span {
+    display: inline-block;
+    padding: 0 48px;
+    font-size: 12px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    opacity: 0.7;
+  }
+
+  .ticker-inner span.accent { color: var(--accent); opacity: 1; }
+
+  @keyframes ticker {
+    0% { transform: translateX(0); }
+    100% { transform: translateX(-50%); }
+  }
+
+  /* ── FEATURES GRID ── */
+  .features {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    border-top: 2px solid var(--ink);
+  }
+
+  .feature-cell {
+    padding: 48px 40px;
+    border-right: 2px solid var(--ink);
+  }
+  .feature-cell:last-child { border-right: none; }
+
+  .feature-num {
+    font-size: 11px;
+    color: var(--accent);
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    margin-bottom: 24px;
+  }
+
+  .feature-title {
+    font-family: 'Playfair Display', serif;
+    font-size: 24px;
+    font-weight: 700;
+    margin-bottom: 16px;
+    line-height: 1.2;
+  }
+
+  .feature-body {
+    font-size: 12px;
+    line-height: 1.8;
+    color: var(--muted);
+  }
+
+  /* ── PRICING TABLE ── */
+  .pricing-section {
+    padding: 80px 48px;
+    border-top: 2px solid var(--ink);
+  }
+
+  .section-header {
+    display: flex;
+    align-items: baseline;
+    gap: 24px;
+    margin-bottom: 48px;
+  }
+
+  .section-title {
+    font-family: 'Playfair Display', serif;
+    font-size: 48px;
+    font-weight: 900;
+    letter-spacing: -1px;
+  }
+
+  .section-rule {
+    flex: 1;
+    height: 2px;
+    background: var(--border);
+  }
+
+  .pricing-grid {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 2px;
+    background: var(--ink);
+    border: 2px solid var(--ink);
+  }
+
+  .pricing-cell {
+    background: var(--paper);
+    padding: 32px 24px;
+    transition: background 0.15s;
+  }
+
+  .pricing-cell:hover { background: var(--cream); }
+
+  .pricing-cell.highlight {
+    background: var(--ink);
+    color: var(--paper);
+  }
+
+  .pricing-chars {
+    font-family: 'Playfair Display', serif;
+    font-size: 48px;
+    font-weight: 900;
+    line-height: 1;
+    margin-bottom: 8px;
+  }
+
+  .pricing-label {
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--muted);
+    margin-bottom: 24px;
+  }
+
+  .pricing-cell.highlight .pricing-label { color: rgba(255,255,255,0.5); }
+
+  .pricing-amount {
+    font-size: 28px;
+    font-family: 'Playfair Display', serif;
+    font-weight: 700;
+  }
+
+  .pricing-per {
+    font-size: 11px;
+    color: var(--muted);
+    letter-spacing: 0.05em;
+  }
+  .pricing-cell.highlight .pricing-per { color: rgba(255,255,255,0.5); }
+
+  /* ── COMPARISON ── */
+  .comparison {
+    padding: 80px 48px;
+    border-top: 2px solid var(--ink);
+    display: grid;
+    grid-template-columns: 1fr 2fr;
+    gap: 80px;
+    align-items: start;
+  }
+
+  .comparison-left h2 {
+    font-family: 'Playfair Display', serif;
+    font-size: 42px;
+    font-weight: 900;
+    line-height: 1.1;
+    letter-spacing: -1px;
+  }
+
+  .comparison-left p {
+    margin-top: 16px;
+    font-size: 12px;
+    line-height: 1.8;
+    color: var(--muted);
+  }
+
+  .comparison-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+  }
+
+  .comparison-table th {
+    padding: 12px 20px;
+    text-align: left;
+    font-size: 11px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    background: var(--ink);
+    color: var(--paper);
+  }
+
+  .comparison-table td {
+    padding: 16px 20px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .comparison-table tr:last-child td { border-bottom: none; }
+
+  .comparison-table td.winner {
+    color: var(--accent);
+    font-weight: 500;
+  }
+
+  /* ── FOOTER ── */
+  .footer {
+    border-top: 2px solid var(--ink);
+    padding: 32px 48px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 11px;
+    color: var(--muted);
+    letter-spacing: 0.05em;
+  }
+
+  .footer-links {
+    display: flex;
+    gap: 32px;
+  }
+
+  .footer-links a {
+    color: var(--muted);
+    text-decoration: none;
+  }
+  .footer-links a:hover { color: var(--ink); }
+
+  /* ── ANIMATIONS ── */
+  .reveal {
+    opacity: 0;
+    transform: translateY(20px);
+    transition: opacity 0.6s ease, transform 0.6s ease;
+  }
+
+  .reveal.visible {
+    opacity: 1;
+    transform: translateY(0);
+  }
+
+  /* ── NAV LINKS ── */
+  .sub-nav {
+    display: flex;
+    gap: 0;
+    border-top: 2px solid var(--ink);
+    border-bottom: 2px solid var(--ink);
+  }
+
+  .sub-nav a {
+    flex: 1;
+    padding: 14px;
+    text-align: center;
+    font-size: 11px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--muted);
+    text-decoration: none;
+    border-right: 1px solid var(--border);
+    transition: all 0.15s;
+  }
+  .sub-nav a:last-child { border-right: none; }
+  .sub-nav a:hover {
+    background: rgba(20, 20, 20, 0.08);
+    color: var(--ink);
+  }
+  .sub-nav a.current { background: var(--accent); color: white; }
+</style>
+</head>
+<body>
+
+<header class="masthead">
+  <a href="https://www.ipns.io/" class="masthead-logo">IPNS<span>.</span>io</a>
+  <nav>
+    <ul class="masthead-nav">
+      <li><a href="https://docs.ipns.io/">Docs</a></li>
+      <li><a href="https://app.ipns.io/">Register</a></li>
+      <li><a href="https://status.ipns.io/">Status</a></li>
+    </ul>
+  </nav>
+  <a href="https://app.ipns.io/" class="masthead-cta">Get a name →</a>
+</header>
+
+<nav class="sub-nav">
+  <a href="https://www.ipns.io/" class="current">www</a>
+  <a href="https://docs.ipns.io/">docs</a>
+  <a href="https://admin.ipns.io/">admin</a>
+  <a href="https://app.ipns.io/">app</a>
+  <a href="https://status.ipns.io/">status</a>
+</nav>
+
+<section class="hero">
+  <div class="hero-left">
+    <div class="hero-eyebrow">Mutable Names · Immutable Content · Base L2</div>
+    <h1 class="hero-headline">
+      IPFS made<br>
+      it <em>permanent.</em><br>
+      We made<br>
+      it <em>findable.</em>
+    </h1>
+    <p class="hero-sub">
+      Every time you update IPFS content, you get a new hash. Every reference breaks.
+      IPNS.io is an onchain mutable pointer — register once, update forever.
+      Sub-cent gas. No server. Any browser.
+    </p>
+  </div>
+
+  <div class="hero-right">
+    <div>
+      <div class="register-label">Find your name</div>
+      <div class="name-input-wrap">
+        <span class="name-prefix">↗</span>
+        <input id="nameInput" type="text" value="alice" autocomplete="off" spellcheck="false" />
+        <span class="name-suffix">.ipns.io</span>
+      </div>
+    </div>
+
+    <div>
+      <div class="register-label">Duration</div>
+      <div class="year-row">
+        <button class="year-btn active" data-years="1">1 year</button>
+        <button class="year-btn" data-years="2">2 years</button>
+        <button class="year-btn" data-years="3">3 years</button>
+        <button class="year-btn" data-years="5">5 years</button>
+      </div>
+    </div>
+
+    <div class="price-display">
+      <div class="price-amount" id="priceDisplay">$10</div>
+      <div class="price-period">
+        <div id="priceTier">3-char name</div>
+        <div style="margin-top:4px; color: var(--muted);">paid in ETH at spot</div>
+      </div>
+    </div>
+
+    <button class="register-btn" id="registerBtn">Prepare Registration Command →</button>
+
+    <div class="cmd-block" id="cmdBlock"></div>
+  </div>
+</section>
+
+<div class="ticker">
+  <div class="ticker-inner" id="tickerInner"></div>
+</div>
+
+<section class="features">
+  <div class="feature-cell reveal">
+    <div class="feature-num">01 — Protocol</div>
+    <h3 class="feature-title">One contract.<br>Open standard.</h3>
+    <p class="feature-body">The registry lives on Base. Anyone can read it. Anyone can run a gateway. Your data isn't trapped by any single provider.</p>
+  </div>
+  <div class="feature-cell reveal">
+    <div class="feature-num">02 — Names</div>
+    <h3 class="feature-title">1–63 chars.<br>$1/year to start.</h3>
+    <p class="feature-body">Five-plus character names cost $1 per year. Short names are priced at a premium. All paid on-chain in ETH at current spot.</p>
+  </div>
+  <div class="feature-cell reveal">
+    <div class="feature-num">03 — Updates</div>
+    <h3 class="feature-title">Sub-cent<br>pointer updates.</h3>
+    <p class="feature-body">Point your name at a new CID anytime for less than a penny. One transaction. No server restarts. No DNS propagation delay.</p>
+  </div>
+  <div class="feature-cell reveal">
+    <div class="feature-num">04 — Agents</div>
+    <h3 class="feature-title">Zero human<br>infrastructure.</h3>
+    <p class="feature-body">AI agents can publish websites with two contract calls. No domain registrar. No identity check. No server. Just a wallet.</p>
+  </div>
+</section>
+
+<section class="pricing-section reveal">
+  <div class="section-header">
+    <h2 class="section-title">Pricing</h2>
+    <div class="section-rule"></div>
+    <span style="font-size:12px; color: var(--muted); letter-spacing: 0.05em;">Annual registration in USD equivalent</span>
+  </div>
+  <div class="pricing-grid">
+    <div class="pricing-cell">
+      <div class="pricing-chars">1</div>
+      <div class="pricing-label">character</div>
+      <div class="pricing-amount">$50</div>
+      <div class="pricing-per">/ year</div>
+    </div>
+    <div class="pricing-cell">
+      <div class="pricing-chars">2</div>
+      <div class="pricing-label">characters</div>
+      <div class="pricing-amount">$25</div>
+      <div class="pricing-per">/ year</div>
+    </div>
+    <div class="pricing-cell">
+      <div class="pricing-chars">3</div>
+      <div class="pricing-label">characters</div>
+      <div class="pricing-amount">$10</div>
+      <div class="pricing-per">/ year</div>
+    </div>
+    <div class="pricing-cell">
+      <div class="pricing-chars">4</div>
+      <div class="pricing-label">characters</div>
+      <div class="pricing-amount">$5</div>
+      <div class="pricing-per">/ year</div>
+    </div>
+    <div class="pricing-cell highlight">
+      <div class="pricing-chars">5+</div>
+      <div class="pricing-label">characters</div>
+      <div class="pricing-amount">$1</div>
+      <div class="pricing-per">/ year</div>
+    </div>
+  </div>
+</section>
+
+<section class="comparison reveal">
+  <div class="comparison-left">
+    <h2>Why not ENS or native IPNS?</h2>
+    <p>Both are good protocols doing different things. IPNS.io is purpose-built for one job: mutable pointers to IPFS content. Nothing else.</p>
+  </div>
+  <div>
+    <table class="comparison-table">
+      <thead>
+        <tr>
+          <th>Feature</th>
+          <th>Native IPNS</th>
+          <th>ENS (L1)</th>
+          <th>IPNS.io</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>Resolution speed</td>
+          <td>~11 seconds</td>
+          <td>instant</td>
+          <td class="winner">instant</td>
+        </tr>
+        <tr>
+          <td>Record expiry</td>
+          <td>48 hours</td>
+          <td>yearly</td>
+          <td class="winner">yearly</td>
+        </tr>
+        <tr>
+          <td>Always-on node</td>
+          <td>required</td>
+          <td>not needed</td>
+          <td class="winner">not needed</td>
+        </tr>
+        <tr>
+          <td>Update cost (frequent)</td>
+          <td>free*</td>
+          <td>~$0.05/tx</td>
+          <td class="winner">&lt;$0.01/tx</td>
+        </tr>
+        <tr>
+          <td>Browser-native gateway</td>
+          <td>no</td>
+          <td>via .limo</td>
+          <td class="winner">yes, built-in</td>
+        </tr>
+        <tr>
+          <td>1–2 char names</td>
+          <td>n/a</td>
+          <td>not available</td>
+          <td class="winner">available</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<footer class="footer">
+  <div>© 2026 IPNS.io Protocol · Contract on Base</div>
+  <div class="footer-links">
+    <a href="https://docs.ipns.io/">Docs</a>
+    <a href="https://status.ipns.io/">Status</a>
+    <a href="https://github.com" target="_blank">GitHub</a>
+    <a href="https://app.ipns.io/">Register a name</a>
+  </div>
+</footer>
+
+<script>
+(function () {
+  // Pricing logic
+  function tier(len) {
+    if (len <= 1) return { usd: 50, label: '1-char name' };
+    if (len === 2) return { usd: 25, label: '2-char name' };
+    if (len === 3) return { usd: 10, label: '3-char name' };
+    if (len === 4) return { usd: 5,  label: '4-char name' };
+    return { usd: 1, label: `${len}-char name` };
+  }
+
+  let selectedYears = 1;
+
+  document.querySelectorAll('.year-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.year-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      selectedYears = Number(btn.dataset.years);
+      update();
+    });
+  });
+
+  const nameInput = document.getElementById('nameInput');
+  nameInput.addEventListener('input', update);
+
+  function update() {
+    const name = (nameInput.value || '').trim().toLowerCase();
+    if (!name) return;
+    const t = tier(name.length);
+    const total = t.usd * selectedYears;
+    document.getElementById('priceDisplay').textContent = `$${total}`;
+    document.getElementById('priceTier').textContent = t.label;
+  }
+
+  document.getElementById('registerBtn').addEventListener('click', () => {
+    const name = (nameInput.value || '').trim().toLowerCase();
+    if (!name) return;
+    const cmd = [
+      `export CONTRACT="0x7Bb7f1C90DeDd39F58D4F0EDc96B9722997CCc2d"`,
+      ``,
+      `# Get exact price`,
+      `PRICE=$(cast call --rpc-url "$BASE_RPC" "$CONTRACT" "getPrice(string,uint8)(uint256)" "${name}" ${selectedYears})`,
+      ``,
+      `# Register`,
+      `cast send --rpc-url "$BASE_RPC" --private-key "$PK" "$CONTRACT" \\`,
+      `  "register(string,uint8)" "${name}" ${selectedYears} --value "$PRICE"`
+    ].join('\n');
+    const block = document.getElementById('cmdBlock');
+    block.style.display = 'block';
+    block.textContent = cmd;
+  });
+
+  update();
+
+  // Ticker
+  const items = [
+    'IPFS + Base', 'Sub-cent updates', 'Mutable pointers',
+    'name.ipns.io', 'Open protocol', 'Browser native',
+    'Agent-ready', '$1/year', 'No server required',
+    'Onchain ownership', 'IPFS made shareable'
+  ];
+  const doubled = [...items, ...items];
+  const inner = document.getElementById('tickerInner');
+  inner.innerHTML = doubled.map((t, i) =>
+    `<span${i % 5 === 0 ? ' class="accent"' : ''}>${t}</span>`
+  ).join('');
+
+  // Reveal on scroll
+  const reveals = document.querySelectorAll('.reveal');
+  const io = new IntersectionObserver(entries => {
+    entries.forEach(e => {
+      if (e.isIntersecting) { e.target.classList.add('visible'); }
+    });
+  }, { threshold: 0.15 });
+  reveals.forEach(r => io.observe(r));
+})();
+</script>
+</body>
+</html>

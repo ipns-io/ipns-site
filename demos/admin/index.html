@@ -1,0 +1,899 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>admin.ipns.io — Operations Console</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Exo+2:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg:        #0d1117;
+    --surface:   #161b22;
+    --surface2:  #1c2430;
+    --border:    #30363d;
+    --border2:   #21262d;
+    --fg:        #e6edf3;
+    --dim:       #8b949e;
+    --amber:     #d29922;
+    --amber-dim: #9e6a03;
+    --green:     #3fb950;
+    --red:       #f85149;
+    --blue:      #388bfd;
+    --cyan:      #79c0ff;
+    --purple:    #bc8cff;
+    --mono:      'Share Tech Mono', monospace;
+    --sans:      'Exo 2', sans-serif;
+  }
+
+  html { font-size: 14px; }
+
+  body {
+    background: var(--bg);
+    color: var(--fg);
+    font-family: var(--mono);
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+  }
+
+  /* ── COMMAND BAR ── */
+  .cmd-bar {
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    height: 48px;
+    display: flex;
+    align-items: center;
+    padding: 0 20px;
+    gap: 20px;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+  }
+
+  .cmd-bar-logo {
+    font-family: var(--mono);
+    font-size: 12px;
+    color: var(--amber);
+    letter-spacing: 0.1em;
+    border: 1px solid var(--amber-dim);
+    padding: 3px 10px;
+    text-decoration: none;
+  }
+
+  .cmd-bar-path {
+    font-size: 12px;
+    color: var(--dim);
+    flex: 1;
+  }
+  .cmd-bar-path span { color: var(--fg); }
+
+  .cmd-bar-status {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 11px;
+    color: var(--green);
+  }
+
+  .status-led {
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    background: var(--green);
+    box-shadow: 0 0 8px var(--green);
+    animation: blink 3s infinite;
+  }
+
+  .status-led.warn { background: var(--amber); box-shadow: 0 0 8px var(--amber); }
+
+  @keyframes blink { 0%,90%,100%{opacity:1;} 95%{opacity:0.3;} }
+
+  .cmd-bar-nav {
+    display: flex;
+    gap: 1px;
+  }
+  .cmd-bar-nav a {
+    display: block;
+    padding: 6px 14px;
+    font-size: 11px;
+    color: var(--dim);
+    text-decoration: none;
+    background: var(--bg);
+    transition: all 0.1s;
+    letter-spacing: 0.05em;
+  }
+  .cmd-bar-nav a:hover { background: var(--surface2); color: var(--fg); }
+  .cmd-bar-nav a.active { background: var(--amber); color: var(--bg); font-weight: 600; }
+
+  /* ── LAYOUT ── */
+  .layout {
+    display: grid;
+    grid-template-columns: 220px 1fr 280px;
+    flex: 1;
+    gap: 0;
+  }
+
+  /* ── PANEL ── */
+  .panel {
+    border-right: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+
+  .panel-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 16px;
+    border-bottom: 1px solid var(--border);
+    background: var(--surface);
+  }
+
+  .panel-title {
+    font-size: 10px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--dim);
+  }
+
+  .panel-badge {
+    font-size: 9px;
+    letter-spacing: 0.1em;
+    padding: 2px 6px;
+    background: var(--border);
+    color: var(--dim);
+    text-transform: uppercase;
+  }
+
+  /* ── LEFT PANEL ── */
+  .left-panel {
+    overflow-y: auto;
+  }
+
+  .nav-group {
+    border-bottom: 1px solid var(--border2);
+  }
+
+  .nav-group-label {
+    padding: 8px 16px;
+    font-size: 9px;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: var(--amber-dim);
+    background: var(--surface);
+  }
+
+  .nav-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 9px 16px;
+    font-size: 12px;
+    color: var(--dim);
+    cursor: pointer;
+    transition: all 0.1s;
+  }
+  .nav-item:hover { background: var(--surface2); color: var(--fg); }
+  .nav-item.active { background: var(--surface2); color: var(--cyan); }
+  .nav-item .icon { font-size: 10px; opacity: 0.6; }
+
+  /* ── MAIN PANEL ── */
+  .main-panel {
+    overflow-y: auto;
+    padding: 0;
+  }
+
+  /* ── SECTION ── */
+  .section {
+    border-bottom: 1px solid var(--border);
+    padding: 20px;
+  }
+
+  .section-title {
+    font-size: 10px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--amber);
+    margin-bottom: 16px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .section-title::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: var(--border);
+  }
+
+  /* ── STATS GRID ── */
+  .stats-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 1px;
+    background: var(--border);
+    margin-bottom: 20px;
+  }
+
+  .stat-cell {
+    background: var(--surface);
+    padding: 16px 20px;
+  }
+
+  .stat-label {
+    font-size: 9px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--dim);
+    margin-bottom: 8px;
+  }
+
+  .stat-value {
+    font-size: 24px;
+    font-family: var(--mono);
+    font-weight: 400;
+    color: var(--fg);
+    line-height: 1;
+  }
+
+  .stat-value.green { color: var(--green); }
+  .stat-value.amber { color: var(--amber); }
+  .stat-value.blue  { color: var(--blue); }
+
+  .stat-sub {
+    font-size: 10px;
+    color: var(--dim);
+    margin-top: 4px;
+  }
+
+  /* ── COMMAND BUILDER ── */
+  .cmd-builder {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    overflow: hidden;
+  }
+
+  .cmd-builder-header {
+    background: var(--surface2);
+    border-bottom: 1px solid var(--border);
+    padding: 10px 16px;
+    font-size: 11px;
+    color: var(--cyan);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .cmd-builder-header::before {
+    content: '▶';
+    font-size: 8px;
+    color: var(--amber);
+  }
+
+  .cmd-fields {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1px;
+    background: var(--border);
+  }
+
+  .cmd-field {
+    background: var(--surface);
+    padding: 14px 16px;
+  }
+
+  .cmd-field-label {
+    font-size: 9px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--dim);
+    margin-bottom: 6px;
+  }
+
+  input, select, textarea {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    color: var(--fg);
+    font-family: var(--mono);
+    font-size: 12px;
+    padding: 8px 12px;
+    width: 100%;
+    outline: none;
+    transition: border-color 0.15s;
+  }
+  input:focus, select:focus, textarea:focus {
+    border-color: var(--amber);
+    box-shadow: 0 0 0 1px var(--amber-dim);
+  }
+
+  textarea { resize: vertical; font-size: 11px; line-height: 1.5; }
+
+  .cmd-actions {
+    padding: 12px 16px;
+    display: flex;
+    gap: 8px;
+    border-top: 1px solid var(--border);
+    background: var(--surface2);
+  }
+
+  .btn {
+    font-family: var(--mono);
+    font-size: 11px;
+    letter-spacing: 0.08em;
+    padding: 7px 16px;
+    border: 1px solid;
+    cursor: pointer;
+    text-transform: uppercase;
+    transition: all 0.1s;
+  }
+
+  .btn-primary {
+    background: var(--amber);
+    border-color: var(--amber);
+    color: var(--bg);
+  }
+  .btn-primary:hover {
+    background: rgba(252, 185, 66, 0.16);
+    border-color: var(--amber);
+    color: var(--amber);
+    box-shadow: 0 0 0 1px rgba(252, 185, 66, 0.35);
+  }
+
+  .btn-secondary {
+    background: transparent;
+    border-color: var(--border);
+    color: var(--dim);
+  }
+  .btn-secondary:hover { border-color: var(--fg); color: var(--fg); }
+
+  .btn-danger {
+    background: transparent;
+    border-color: var(--red);
+    color: var(--red);
+  }
+  .btn-danger:hover {
+    background: rgba(255, 84, 84, 0.14);
+    color: var(--red);
+    box-shadow: 0 0 0 1px rgba(255, 84, 84, 0.32);
+  }
+
+  /* ── TERMINAL OUTPUT ── */
+  .terminal {
+    background: var(--bg);
+    border-top: 1px solid var(--border);
+    padding: 16px;
+    font-size: 12px;
+    line-height: 1.7;
+    white-space: pre-wrap;
+    overflow-x: auto;
+    min-height: 80px;
+    color: var(--green);
+  }
+
+  .terminal .t-prompt { color: var(--amber); }
+  .terminal .t-dim { color: var(--dim); }
+  .terminal .t-error { color: var(--red); }
+  .terminal .t-ok { color: var(--green); }
+  .terminal .t-info { color: var(--cyan); }
+
+  /* ── RESERVED NAMES TABLE ── */
+  .data-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 12px;
+  }
+
+  .data-table th {
+    padding: 8px 14px;
+    text-align: left;
+    font-size: 9px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--dim);
+    background: var(--surface2);
+    border-bottom: 1px solid var(--border);
+  }
+
+  .data-table td {
+    padding: 9px 14px;
+    border-bottom: 1px solid var(--border2);
+    color: var(--dim);
+  }
+
+  .data-table td.name { color: var(--cyan); font-family: var(--mono); }
+  .data-table td.ok   { color: var(--green); }
+  .data-table td.warn { color: var(--amber); }
+  .data-table td.err  { color: var(--red); }
+
+  .data-table tr:hover td { background: var(--surface); }
+
+  /* ── RIGHT PANEL ── */
+  .right-panel {
+    overflow-y: auto;
+    border-left: 1px solid var(--border);
+    border-right: none;
+  }
+
+  .log-entry {
+    display: grid;
+    grid-template-columns: auto 1fr;
+    gap: 10px;
+    padding: 10px 14px;
+    border-bottom: 1px solid var(--border2);
+    font-size: 11px;
+    line-height: 1.5;
+  }
+
+  .log-time { color: var(--dim); white-space: nowrap; }
+  .log-msg { color: var(--fg); }
+  .log-entry.ok .log-msg  { color: var(--green); }
+  .log-entry.warn .log-msg { color: var(--amber); }
+  .log-entry.err .log-msg  { color: var(--red); }
+  .log-entry.info .log-msg { color: var(--cyan); }
+
+  .info-cell {
+    padding: 12px 16px;
+    border-bottom: 1px solid var(--border2);
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+  }
+  .info-cell-label { font-size: 10px; color: var(--dim); letter-spacing: 0.05em; }
+  .info-cell-value { font-size: 12px; color: var(--fg); text-align: right; }
+  .info-cell-value.ok { color: var(--green); }
+  .info-cell-value.warn { color: var(--amber); }
+
+  /* ── CLOCK ── */
+  #clock {
+    font-size: 11px;
+    color: var(--dim);
+    padding: 10px 14px;
+    border-bottom: 1px solid var(--border);
+    letter-spacing: 0.05em;
+  }
+
+  .scrolling-log {
+    max-height: 280px;
+    overflow-y: auto;
+  }
+</style>
+</head>
+<body>
+
+<header class="cmd-bar">
+  <a href="https://www.ipns.io/" class="cmd-bar-logo">IPNS.io</a>
+  <span class="cmd-bar-path">/ admin / <span>registry-ops</span></span>
+  <div class="cmd-bar-status">
+    <div class="status-led"></div>
+    <span>ALL SYSTEMS OPERATIONAL</span>
+  </div>
+  <nav class="cmd-bar-nav">
+    <a href="https://www.ipns.io/">www</a>
+    <a href="https://docs.ipns.io/">docs</a>
+    <a href="https://admin.ipns.io/" class="active">admin</a>
+    <a href="https://app.ipns.io/">app</a>
+    <a href="https://status.ipns.io/">status</a>
+  </nav>
+</header>
+
+<div class="layout">
+
+  <!-- LEFT: NAVIGATION -->
+  <div class="panel left-panel">
+    <div class="panel-header">
+      <span class="panel-title">Operations</span>
+      <span class="panel-badge">v1.0</span>
+    </div>
+    <div class="nav-group">
+      <div class="nav-group-label">Registry</div>
+      <div class="nav-item active" data-target="cid-update"><span class="icon">◆</span> CID Update</div>
+      <div class="nav-item" data-target="name-lookup"><span class="icon">○</span> Name Lookup</div>
+      <div class="nav-item" data-target="reserved"><span class="icon">○</span> Reserved Names</div>
+      <div class="nav-item" data-target="pricing"><span class="icon">○</span> Pricing</div>
+    </div>
+    <div class="nav-group">
+      <div class="nav-group-label">Contract</div>
+      <div class="nav-item" data-target="withdraw-fees"><span class="icon">○</span> Withdraw Fees</div>
+      <div class="nav-item" data-target="set-treasury"><span class="icon">○</span> Set Treasury</div>
+      <div class="nav-item" data-target="reserve-name"><span class="icon">○</span> Reserve Name</div>
+    </div>
+    <div class="nav-group">
+      <div class="nav-group-label">Gateway</div>
+      <div class="nav-item" data-target="health-check"><span class="icon">○</span> Health Check</div>
+      <div class="nav-item" data-target="cache-purge"><span class="icon">○</span> Cache Purge</div>
+    </div>
+  </div>
+
+  <!-- CENTER: MAIN CONTENT -->
+  <div class="panel main-panel">
+
+    <div class="section" id="section-snapshot">
+      <div class="section-title">Registry Snapshot</div>
+      <div class="stats-grid">
+        <div class="stat-cell">
+          <div class="stat-label">Contract</div>
+          <div class="stat-value blue" style="font-size:13px;">0x7Bb7...Cc2d</div>
+          <div class="stat-sub">Base Mainnet</div>
+        </div>
+        <div class="stat-cell">
+          <div class="stat-label">Grace Period</div>
+          <div class="stat-value amber">90d</div>
+          <div class="stat-sub">post-expiry</div>
+        </div>
+        <div class="stat-cell">
+          <div class="stat-label">Registry Status</div>
+          <div class="stat-value green">LIVE</div>
+          <div class="stat-sub">accepting registrations</div>
+        </div>
+        <div class="stat-cell">
+          <div class="stat-label">Base Block Lag</div>
+          <div class="stat-value" id="blockLag">0</div>
+          <div class="stat-sub">blocks behind tip</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="section" id="section-builder">
+      <div class="section-title">CID Update Builder</div>
+      <div class="cmd-builder">
+        <div class="cmd-builder-header">setCID(string name, string cid)</div>
+        <div class="cmd-fields">
+          <div class="cmd-field">
+            <div class="cmd-field-label">Name</div>
+            <input id="adminName" value="alice" spellcheck="false" />
+          </div>
+          <div class="cmd-field">
+            <div class="cmd-field-label">Operation</div>
+            <select id="opSelect">
+              <option value="setCID">setCID — update pointer</option>
+              <option value="renew">renew — extend expiry</option>
+              <option value="resolve">resolve — read CID</option>
+            </select>
+          </div>
+          <div class="cmd-field" style="grid-column: 1 / -1;">
+            <div class="cmd-field-label">New CID</div>
+            <textarea id="adminCid" rows="2">bafybeibi4xw34bcyax6xtmdddapz7nmyew5rdhtiuf7kodjj2eq4udco6u</textarea>
+          </div>
+        </div>
+        <div class="cmd-actions">
+          <button class="btn btn-primary" id="buildCmd">▶ Generate Command</button>
+          <button class="btn btn-secondary" id="copyCmd">⊞ Copy</button>
+          <button class="btn btn-danger" id="clearCmd">✕ Clear</button>
+        </div>
+        <div class="terminal" id="termOutput"><span class="t-dim">// awaiting input — fill fields above and click generate</span></div>
+      </div>
+    </div>
+
+    <div class="section" id="section-reserved">
+      <div class="section-title">Reserved Names</div>
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>Name</th>
+            <th>Reason</th>
+            <th>State</th>
+            <th>Action</th>
+          </tr>
+        </thead>
+        <tbody id="reservedTable"></tbody>
+      </table>
+    </div>
+
+    <div class="section" id="section-pricing" style="display:none;">
+      <div class="section-title">Pricing Matrix</div>
+      <table class="data-table">
+        <thead>
+          <tr><th>Length</th><th>Price / year</th><th>Notes</th></tr>
+        </thead>
+        <tbody>
+          <tr><td class="name">1 char</td><td>$50</td><td>scarce premium</td></tr>
+          <tr><td class="name">2 chars</td><td>$25</td><td>premium short names</td></tr>
+          <tr><td class="name">3 chars</td><td>$10</td><td>abbreviations / brands</td></tr>
+          <tr><td class="name">4 chars</td><td>$5</td><td>short utility names</td></tr>
+          <tr><td class="name">5+ chars</td><td>$1</td><td>agent and app volume tier</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+  </div>
+
+  <!-- RIGHT: LOG + INFO -->
+  <div class="right-panel">
+    <div class="panel-header" style="background: var(--surface);">
+      <span class="panel-title">System Log</span>
+      <span class="panel-badge" id="logCount">0 events</span>
+    </div>
+    <div id="clock">UTC --:--:--</div>
+    <div class="scrolling-log" id="logContainer"></div>
+
+    <div class="panel-header" style="background: var(--surface); margin-top: 0; border-top: 1px solid var(--border);">
+      <span class="panel-title">Contract Info</span>
+    </div>
+
+    <div class="info-cell">
+      <span class="info-cell-label">network</span>
+      <span class="info-cell-value ok">Base Mainnet</span>
+    </div>
+    <div class="info-cell">
+      <span class="info-cell-label">chain id</span>
+      <span class="info-cell-value">8453</span>
+    </div>
+    <div class="info-cell">
+      <span class="info-cell-label">reg period</span>
+      <span class="info-cell-value">365 days</span>
+    </div>
+    <div class="info-cell">
+      <span class="info-cell-label">grace period</span>
+      <span class="info-cell-value warn">90 days</span>
+    </div>
+    <div class="info-cell">
+      <span class="info-cell-label">min length</span>
+      <span class="info-cell-value">1 char</span>
+    </div>
+    <div class="info-cell">
+      <span class="info-cell-label">max length</span>
+      <span class="info-cell-value">63 chars</span>
+    </div>
+    <div class="info-cell">
+      <span class="info-cell-label">5+ char price</span>
+      <span class="info-cell-value ok">$1 / year</span>
+    </div>
+    <div class="info-cell">
+      <span class="info-cell-label">verified source</span>
+      <span class="info-cell-value ok">Basescan ✓</span>
+    </div>
+  </div>
+
+</div>
+
+<script>
+(function () {
+  const CONTRACT = '0x7Bb7f1C90DeDd39F58D4F0EDc96B9722997CCc2d';
+
+  // Clock
+  function updateClock() {
+    document.getElementById('clock').textContent =
+      'UTC ' + new Date().toUTCString().split(' ')[4];
+  }
+  setInterval(updateClock, 1000);
+  updateClock();
+
+  // Log
+  const logs = [];
+  const logContainer = document.getElementById('logContainer');
+  const logCount = document.getElementById('logCount');
+
+  function addLog(type, msg) {
+    const time = new Date().toISOString().split('T')[1].split('.')[0];
+    logs.unshift({ type, msg, time });
+    render();
+  }
+
+  function render() {
+    logCount.textContent = logs.length + ' events';
+    logContainer.innerHTML = logs.slice(0, 20).map(l =>
+      `<div class="log-entry ${l.type}">
+        <span class="log-time">${l.time}</span>
+        <span class="log-msg">${l.msg}</span>
+      </div>`
+    ).join('');
+  }
+
+  // Boot log
+  addLog('ok', 'admin console initialized');
+  addLog('info', 'contract: 0x7Bb7...Cc2d');
+  addLog('ok', 'rpc connection healthy');
+  addLog('info', 'gateway: base mainnet');
+
+  // Block lag sim
+  setInterval(() => {
+    const lag = Math.random() < 0.9 ? 0 : 1;
+    document.getElementById('blockLag').textContent = lag;
+    if (lag > 0) addLog('warn', `block lag: ${lag} behind tip`);
+  }, 8000);
+
+  // Reserved names data
+  const reserved = [
+    { name: 'www',      reason: 'public landing',         state: 'ok' },
+    { name: 'docs',     reason: 'developer docs',          state: 'ok' },
+    { name: 'admin',    reason: 'ops console',             state: 'ok' },
+    { name: 'app',      reason: 'registration app',        state: 'ok' },
+    { name: 'status',   reason: 'health status',           state: 'ok' },
+    { name: 'api',      reason: 'protocol reserved',       state: 'ok' },
+    { name: 'ipfs',     reason: 'protocol reserved',       state: 'ok' },
+    { name: 'gateway',  reason: 'protocol reserved',       state: 'ok' },
+    { name: 'registry', reason: 'protocol reserved',       state: 'ok' },
+    { name: 'eth',      reason: 'chain name reserved',     state: 'ok' },
+  ];
+
+  const tbody = document.getElementById('reservedTable');
+  tbody.innerHTML = reserved.map(r =>
+    `<tr>
+      <td class="name">${r.name}</td>
+      <td>${r.reason}</td>
+      <td class="${r.state}">${r.state === 'ok' ? '● RESERVED' : '○ open'}</td>
+      <td><button class="btn btn-secondary" style="font-size:10px; padding:3px 8px;" onclick="unreservePrompt('${r.name}')">unreserve</button></td>
+    </tr>`
+  ).join('');
+
+  // Command builder
+  const term = document.getElementById('termOutput');
+
+  function buildCommand() {
+    const name = (document.getElementById('adminName').value || '').trim().toLowerCase();
+    const cid  = (document.getElementById('adminCid').value || '').trim();
+    const op   = document.getElementById('opSelect').value;
+
+    if (!name) {
+      term.innerHTML = `<span class="t-error">ERROR: name required</span>`;
+      return null;
+    }
+
+    let cmd;
+    if (op === 'setCID') {
+      if (!cid) { term.innerHTML = `<span class="t-error">ERROR: CID required for setCID</span>`; return null; }
+      cmd = `<span class="t-prompt">$</span> cast send \\
+  --rpc-url "$BASE_RPC" \\
+  --private-key "$ADMIN_PK" \\
+  "${CONTRACT}" \\
+  <span class="t-info">"setCID(string,string)"</span> \\
+  <span class="t-ok">"${name}"</span> \\
+  <span class="t-ok">"${cid}"</span>`;
+    } else if (op === 'renew') {
+      cmd = `<span class="t-prompt">$</span> PRICE=$(cast call --rpc-url "$BASE_RPC" "${CONTRACT}" "getPrice(string,uint8)(uint256)" "${name}" 1)
+<span class="t-prompt">$</span> cast send \\
+  --rpc-url "$BASE_RPC" \\
+  --private-key "$ADMIN_PK" \\
+  "${CONTRACT}" \\
+  <span class="t-info">"renew(string,uint8)"</span> \\
+  <span class="t-ok">"${name}"</span> 1 --value "$PRICE"`;
+    } else {
+      cmd = `<span class="t-prompt">$</span> cast call \\
+  --rpc-url "$BASE_RPC" \\
+  "${CONTRACT}" \\
+  <span class="t-info">"resolve(string)(string)"</span> \\
+  <span class="t-ok">"${name}"</span>`;
+    }
+
+    term.innerHTML = cmd;
+    return term.textContent;
+  }
+
+  document.getElementById('buildCmd').addEventListener('click', () => {
+    const cmd = buildCommand();
+    if (cmd) addLog('info', `command generated: ${document.getElementById('opSelect').value}("${document.getElementById('adminName').value}")`);
+  });
+
+  document.getElementById('copyCmd').addEventListener('click', async () => {
+    const text = term.textContent;
+    if (!text || text.includes('awaiting')) return;
+    try {
+      await navigator.clipboard.writeText(text);
+      addLog('ok', 'command copied to clipboard');
+    } catch {
+      addLog('warn', 'clipboard blocked — copy manually');
+    }
+  });
+
+  document.getElementById('clearCmd').addEventListener('click', () => {
+    term.innerHTML = `<span class="t-dim">// cleared</span>`;
+    addLog('info', 'terminal cleared');
+  });
+
+  // Left navigation actions
+  const mainPanel = document.querySelector('.main-panel');
+  const sections = {
+    snapshot: document.getElementById('section-snapshot'),
+    builder: document.getElementById('section-builder'),
+    reserved: document.getElementById('section-reserved'),
+    pricing: document.getElementById('section-pricing')
+  };
+
+  function scrollMainTo(el) {
+    if (!mainPanel || !el) return;
+    const panelTop = mainPanel.getBoundingClientRect().top;
+    const targetTop = el.getBoundingClientRect().top;
+    const offset = 10;
+    const nextTop = mainPanel.scrollTop + (targetTop - panelTop) - offset;
+    mainPanel.scrollTo({ top: Math.max(0, nextTop), behavior: 'smooth' });
+  }
+
+  function openSection(sectionKey) {
+    Object.values(sections).forEach((el) => {
+      if (!el) return;
+      el.style.display = 'none';
+    });
+    if (sectionKey === 'pricing') {
+      sections.pricing.style.display = '';
+      scrollMainTo(sections.pricing);
+      return;
+    }
+    if (sectionKey === 'reserved') {
+      sections.reserved.style.display = '';
+      scrollMainTo(sections.reserved);
+      return;
+    }
+    if (sectionKey === 'snapshot') {
+      sections.snapshot.style.display = '';
+      scrollMainTo(sections.snapshot);
+      return;
+    }
+    sections.builder.style.display = '';
+    scrollMainTo(sections.builder);
+  }
+
+  function setBuilderMode(mode, nameHint) {
+    const opSelect = document.getElementById('opSelect');
+    const nameInput = document.getElementById('adminName');
+    if (mode) opSelect.value = mode;
+    if (nameHint) nameInput.value = nameHint;
+  }
+
+  document.querySelectorAll('.nav-item').forEach((item) => {
+    item.addEventListener('click', () => {
+      document.querySelectorAll('.nav-item').forEach((n) => n.classList.remove('active'));
+      item.classList.add('active');
+
+      const target = item.dataset.target || '';
+      switch (target) {
+        case 'cid-update':
+          setBuilderMode('setCID');
+          openSection('builder');
+          addLog('info', 'opened: CID Update');
+          break;
+        case 'name-lookup':
+          setBuilderMode('resolve');
+          openSection('builder');
+          addLog('info', 'opened: Name Lookup');
+          break;
+        case 'reserved':
+          openSection('reserved');
+          addLog('info', 'opened: Reserved Names');
+          break;
+        case 'pricing':
+          openSection('pricing');
+          addLog('info', 'opened: Pricing');
+          break;
+        case 'withdraw-fees':
+          term.innerHTML = `<span class="t-prompt">$</span> cast send --rpc-url "$BASE_RPC" --private-key "$ADMIN_PK" "${CONTRACT}" <span class="t-info">"withdraw()"</span>`;
+          openSection('builder');
+          addLog('warn', 'prepared: Withdraw Fees command (review before execute)');
+          break;
+        case 'set-treasury':
+          term.innerHTML = `<span class="t-prompt">$</span> cast send --rpc-url "$BASE_RPC" --private-key "$ADMIN_PK" "${CONTRACT}" <span class="t-info">"setTreasury(address)"</span> <span class="t-ok">"0x...newTreasury"</span>`;
+          openSection('builder');
+          addLog('warn', 'prepared: Set Treasury command (review before execute)');
+          break;
+        case 'reserve-name':
+          term.innerHTML = `<span class="t-prompt">$</span> cast send --rpc-url "$BASE_RPC" --private-key "$ADMIN_PK" "${CONTRACT}" <span class="t-info">"reserveName(string)"</span> <span class="t-ok">"example"</span>`;
+          openSection('builder');
+          addLog('warn', 'prepared: Reserve Name command');
+          break;
+        case 'health-check':
+          term.innerHTML = `<span class="t-prompt">$</span> curl -s https://test.ipns.io/healthz\n<span class="t-ok">{ "ok": true, "apexDomain": "ipns.io", ... }</span>`;
+          openSection('builder');
+          addLog('ok', 'gateway health check ready');
+          break;
+        case 'cache-purge':
+          term.innerHTML = `<span class="t-dim">// cache purge requires Cloudflare API token + zone id\n</span><span class="t-prompt">$</span> curl -X POST https://api.cloudflare.com/client/v4/zones/$ZONE/purge_cache ...`;
+          openSection('builder');
+          addLog('info', 'cache purge playbook loaded');
+          break;
+        default:
+          if (mainPanel) mainPanel.scrollTo({ top: 0, behavior: 'smooth' });
+      }
+    });
+  });
+
+  window.unreservePrompt = function(name) {
+    addLog('warn', `unreserve requested: ${name} (not executed — static demo)`);
+  };
+
+  openSection('builder');
+})();
+</script>
+</body>
+</html>
