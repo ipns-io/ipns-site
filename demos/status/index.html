@@ -3,6 +3,10 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1" />
+<link rel="icon" type="image/png" sizes="16x16" href="../https://raw.githubusercontent.com/ipns-io/ipns-site/main/assets/favicons/favicon_16.png">
+<link rel="icon" type="image/png" sizes="32x32" href="../https://raw.githubusercontent.com/ipns-io/ipns-site/main/assets/favicons/favicon_32.png">
+<link rel="icon" type="image/png" sizes="64x64" href="../https://raw.githubusercontent.com/ipns-io/ipns-site/main/assets/favicons/favicon_64.png">
+<link rel="apple-touch-icon" href="../https://raw.githubusercontent.com/ipns-io/ipns-site/main/assets/favicons/final_favicon.png">
 <title>status.ipns.io — System Status</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=VT323&family=Azeret+Mono:wght@300;400;500;600&display=swap" rel="stylesheet">
@@ -475,7 +479,7 @@
     </div>
     <div class="metric">
       <span class="metric-key">sample_name</span>
-      <span class="metric-val dim">alice.ipns.io</span>
+      <span class="metric-val dim">yourname.ipns.io</span>
     </div>
     <div class="metric">
       <span class="metric-key">sample_resolve</span>
@@ -548,7 +552,7 @@
     <div class="check-form">
       <div class="field-group">
         <label class="field-label">Name to probe</label>
-        <input id="checkName" value="alice" />
+        <input id="checkName" value="yourname" />
       </div>
       <div class="field-group">
         <label class="field-label">Expected CID prefix</label>
@@ -649,7 +653,7 @@
   // Incidents
   const incidents = [
     { ts: '2026-02-17T00:28:11Z', comp: 'ipfs_upstream',   sev: 'warn',  status: 'resolved', detail: 'gateway origin misconfigured; env var typo patched' },
-    { ts: '2026-02-17T00:34:02Z', comp: 'name_resolution', sev: 'ok',    status: 'resolved', detail: 'contract verified for `alice` — CID returned correctly' },
+    { ts: '2026-02-17T00:34:02Z', comp: 'name_resolution', sev: 'ok',    status: 'resolved', detail: 'contract verified for `yourname` — CID returned correctly' },
     { ts: '2026-02-17T00:40:21Z', comp: 'route_config',    sev: 'ok',    status: 'resolved', detail: 'wildcard route attached to worker; all subdomains routing' },
     { ts: '2026-02-16T14:11:00Z', comp: 'gateway',         sev: 'ok',    status: 'resolved', detail: 'scheduled maintenance window — 4 min downtime' },
     { ts: '2026-02-15T09:22:45Z', comp: 'base_rpc',        sev: 'warn',  status: 'resolved', detail: 'rpc latency spike (+200ms p99); self-resolved after 8min' },

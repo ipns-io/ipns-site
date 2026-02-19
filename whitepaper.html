@@ -3,6 +3,10 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="icon" type="image/png" sizes="16x16" href="https://raw.githubusercontent.com/ipns-io/ipns-site/main/assets/favicons/favicon_16.png">
+<link rel="icon" type="image/png" sizes="32x32" href="https://raw.githubusercontent.com/ipns-io/ipns-site/main/assets/favicons/favicon_32.png">
+<link rel="icon" type="image/png" sizes="64x64" href="https://raw.githubusercontent.com/ipns-io/ipns-site/main/assets/favicons/favicon_64.png">
+<link rel="apple-touch-icon" href="https://raw.githubusercontent.com/ipns-io/ipns-site/main/assets/favicons/final_favicon.png">
 <title>IPNS.io — A Naming Protocol for IPFS Content</title>
 <style>
   @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:ital,wght@0,300;0,400;0,600;1,300;1,400&family=Space+Mono:wght@400;700&display=swap');
@@ -309,7 +313,7 @@
       IPNS.io is an open naming protocol that maps human-readable names to IPFS content identifiers. The protocol is a single smart contract on Base. The name registry is public, permissionless, and readable by anyone. The reference gateway at <code>ipns.io</code> resolves names and serves content over HTTPS, but it's not the protocol. It's one implementation of the protocol. Anyone can run a gateway. The entire codebase is open source.
     </p>
     <p>
-      The result: <code>bafybeigdyrzt5sfp7udm7hu76uh7y26nf3</code> becomes <span class="highlight">alice.ipns.io</span>. Register a name, point it at a CID, share the link. That's it.
+      The result: <code>bafybeigdyrzt5sfp7udm7hu76uh7y26nf3</code> becomes <span class="highlight">yourname.ipns.io</span>. Register a name, point it at a CID, share the link. That's it.
     </p>
   </div>
 
@@ -360,7 +364,7 @@
 <span class="keyword">function</span> <span class="func">transfer</span>(<span class="type">string</span> name, <span class="type">address</span> to) <span class="keyword">external</span>;</div>
 
     <p>
-      A user calls <code>register("alice", 1)</code> with a payment on Base. The name is theirs for one year. They call <code>setCID("alice", "bafybei...")</code> to point it at IPFS content. Anyone in the world can call <code>resolve("alice")</code> to get the current CID.
+      A user calls <code>register("yourname", 1)</code> with a payment on Base. The name is theirs for one year. They call <code>setCID("yourname", "bafybei...")</code> to point it at IPFS content. Anyone in the world can call <code>resolve("yourname")</code> to get the current CID.
     </p>
     <p>
       The contract handles registration, renewal, CID updates, ownership transfers, and name resolution. Names are case-insensitive, alphanumeric with hyphens, 1-63 characters. A 90-day grace period protects owners from accidental expiration. After the grace period, expired names return to the open pool.
@@ -377,12 +381,12 @@
     <span class="section-num">03 — The Gateway</span>
     <h2>A reference implementation, not the product</h2>
     <p>
-      A gateway is a server that reads the IPNS.io contract, fetches the corresponding IPFS content, and serves it over HTTPS. The reference gateway at <code>ipns.io</code> uses wildcard DNS so that <code>alice.ipns.io</code> resolves the name "alice" from the contract, retrieves the CID from IPFS, and delivers the content to any browser.
+      A gateway is a server that reads the IPNS.io contract, fetches the corresponding IPFS content, and serves it over HTTPS. The reference gateway at <code>ipns.io</code> uses wildcard DNS so that <code>yourname.ipns.io</code> resolves the name "yourname" from the contract, retrieves the CID from IPFS, and delivers the content to any browser.
     </p>
 
     <div class="diagram"><span class="label">Resolution path:</span>
 
-<span class="bright">user</span> <span class="arrow">→</span> alice.ipns.io <span class="arrow">→</span> gateway reads contract
+<span class="bright">user</span> <span class="arrow">→</span> yourname.ipns.io <span class="arrow">→</span> gateway reads contract
   <span class="arrow">→</span> CID <span class="arrow">→</span> IPFS network <span class="arrow">→</span> <span class="bright">content</span></div>
 
     <p>
@@ -392,7 +396,7 @@
       Trust model, explicitly: a browser user trusts the gateway they are using for delivery. A malicious gateway could censor or alter HTTP responses. The protocol still protects ownership and name->CID state on-chain, but the final delivery hop is a trust point. The mitigation is protocol-level portability: use subdomain isolation, open source the gateway, and make switching gateways trivial.
     </p>
     <p>
-      The gateway code is fully open source. Anyone can clone the repository, point it at the same contract, and run their own gateway on their own domain. A community member could run <code>alice.ipns-gateway.org</code>. A company could run <code>alice.names.example.com</code>. They all read the same public registry and serve the same content. Different doors, same room.
+      The gateway code is fully open source. Anyone can clone the repository, point it at the same contract, and run their own gateway on their own domain. A community member could run <code>yourname.ipns-gateway.org</code>. A company could run <code>yourname.names.example.com</code>. They all read the same public registry and serve the same content. Different doors, same room.
     </p>
     <p>
       This is a deliberate architectural choice. The protocol (the contract) is the permanent, shared layer that stores all the data. Gateways are interchangeable, disposable, and commoditized. If the reference gateway at <code>ipns.io</code> goes down, the protocol keeps running. Every name, every CID mapping, every ownership record is on-chain and unaffected. A new gateway can be deployed in minutes using the open source code.
@@ -412,7 +416,7 @@
 
     <div class="code-block"><span class="comment">// Inputs</span>
 HTTP request:
-  Host: alice.ipns.io
+  Host: yourname.ipns.io
   Path: /docs/index.html
 
 Environment:
@@ -425,8 +429,8 @@ Environment:
    - If Host == ipns.io: resolve via path mode (see below)
    - If Host matches *.ipns.io:
        a) Split labels left of ipns.io
-       b) name = last label (e.g. alice)
-       c) sub  = optional label before it (e.g. blog) <span class="comment">// v0 supports blog.alice</span>
+       b) name = last label (e.g. yourname)
+       c) sub  = optional label before it (e.g. blog) <span class="comment">// v0 supports blog.yourname</span>
 
 2) Normalize (must match contract):
    - lowercase
@@ -449,8 +453,8 @@ Environment:
    - Add conservative caching for immutable CIDs (Cache-Control: public, max-age=...)
 
 <span class="comment">// v0 algorithm (paths)</span>
-Request: https://ipns.io/alice/docs/
-  - first path segment is name ("alice")
+Request: https://ipns.io/yourname/docs/
+  - first path segment is name ("yourname")
   - remaining path is file path ("docs/index.html")</div>
 
     <p>
@@ -491,7 +495,7 @@ Request: https://ipns.io/alice/docs/
       <strong>"This is just a URL shortener for IPFS."</strong> A URL shortener creates a random, disposable redirect that the service owns. If the service dies, every link dies with it. You can't choose the short URL, you can't update where it points, and it doesn't represent an identity.
     </p>
     <p>
-      IPNS.io names are chosen by the registrant, owned on-chain by the registrant's wallet, updatable by the registrant at any time, and transferable. <code>alice.ipns.io</code> is a persistent identity that you own and can point at different content over time. <code>bit.ly/x7Kp2</code> is a throwaway redirect that Bitly owns. The difference is the same as between a domain name and a shortened link. Nobody puts a bit.ly URL on a business card.
+      IPNS.io names are chosen by the registrant, owned on-chain by the registrant's wallet, updatable by the registrant at any time, and transferable. <code>yourname.ipns.io</code> is a persistent identity that you own and can point at different content over time. <code>bit.ly/x7Kp2</code> is a throwaway redirect that Bitly owns. The difference is the same as between a domain name and a shortened link. Nobody puts a bit.ly URL on a business card.
     </p>
     <p>
       <strong>"This is just DNS on a blockchain."</strong> Crypto DNS already exists. ENS is a general-purpose name registry on Ethereum that can point to addresses, IP addresses, content hashes, or arbitrary records. It's a Swiss Army knife.
@@ -709,17 +713,21 @@ contract: 0x... <span class="comment">(verified)</span>
 commit:   ...   <span class="comment">(tagged release)</span>
 owner:    0x... <span class="comment">(multisig)</span></div>
     <p>
-      Governance: the protocol contract is immutable. Administrative controls (pricing tiers, reserved infra labels, coupon signer) are held by a multisig and can be placed behind a timelock. The goal is a stable registry with minimal, transparent knobs.
+      Governance: the protocol contract is immutable. Administrative controls (pricing tiers, reserved infra labels, and treasury address) are held by a multisig and can be placed behind a timelock. The goal is a stable registry with minimal, transparent knobs.
     </p>
     <p>
       <strong>Governance and mutability, explicitly:</strong>
     </p>
     <ul>
       <li><strong>Locked at deploy:</strong> ownership semantics, renewal/expiry rules, grace period behavior, and resolution logic.</li>
-      <li><strong>Owner-governed parameters:</strong> length-tier pricing, reserved-label list, treasury address, and coupon signer.</li>
+      <li><strong>Owner-governed parameters:</strong> length-tier pricing, reserved-label list, and treasury address.</li>
+      <li><strong>Emergency control:</strong> a multisig-controlled pause can temporarily halt user write actions (register/renew/updates/transfers) while read resolution remains online.</li>
       <li><strong>Operational model:</strong> owner should be a multisig, with timelock and public notice for parameter changes.</li>
       <li><strong>User trust guarantee:</strong> every change is on-chain and auditable; no hidden backend mutation path exists.</li>
     </ul>
+    <p>
+      Launch policy is paid registration only. There is no free-claim or coupon registration path in production.
+    </p>
     <p>
       Early-stage governance is used for market calibration and anti-squatting policy. Long-term, the objective is to minimize mutable knobs and freeze stable economics once real usage data is sufficient.
     </p>
@@ -780,7 +788,7 @@ owner:    0x... <span class="comment">(multisig)</span></div>
       Pin your content. Name it. Share the link.
     </p>
     <p>
-      <span class="highlight">alice.ipns.io</span>
+      <span class="highlight">yourname.ipns.io</span>
     </p>
   </div>
 

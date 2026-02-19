@@ -3,6 +3,10 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1" />
+<link rel="icon" type="image/png" sizes="16x16" href="../https://raw.githubusercontent.com/ipns-io/ipns-site/main/assets/favicons/favicon_16.png">
+<link rel="icon" type="image/png" sizes="32x32" href="../https://raw.githubusercontent.com/ipns-io/ipns-site/main/assets/favicons/favicon_32.png">
+<link rel="icon" type="image/png" sizes="64x64" href="../https://raw.githubusercontent.com/ipns-io/ipns-site/main/assets/favicons/favicon_64.png">
+<link rel="apple-touch-icon" href="../https://raw.githubusercontent.com/ipns-io/ipns-site/main/assets/favicons/final_favicon.png">
 <title>app.ipns.io — Register a Name</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Sora:wght@300;400;500;600;700&family=JetBrains+Mono:wght@300;400;500&display=swap" rel="stylesheet">
@@ -500,7 +504,7 @@
       <div class="card-body">
         <div class="name-search-box">
           <span class="search-prefix">↗</span>
-          <input id="nameInput" type="text" value="alice" autocomplete="off" spellcheck="false" placeholder="yourname" />
+          <input id="nameInput" type="text" value="yourname" autocomplete="off" spellcheck="false" placeholder="yourname" />
           <span class="search-suffix">.ipns.io</span>
         </div>
         <div class="tags">
@@ -601,7 +605,7 @@
           <tr><td class="name">2 chars</td><td class="name" style="font-weight:400;">ab.ipns.io</td><td class="usd">$25</td></tr>
           <tr><td class="name">3 chars</td><td class="name" style="font-weight:400;">eth.ipns.io</td><td class="usd">$10</td></tr>
           <tr><td class="name">4 chars</td><td class="name" style="font-weight:400;">ipfs.ipns.io</td><td class="usd">$5</td></tr>
-          <tr class="highlight"><td class="name">5+ chars</td><td class="name" style="font-weight:400; color:var(--blue);">alice.ipns.io</td><td class="usd">$1</td></tr>
+          <tr class="highlight"><td class="name">5+ chars</td><td class="name" style="font-weight:400; color:var(--blue);">yourname.ipns.io</td><td class="usd">$1</td></tr>
         </tbody>
       </table>
     </div>
@@ -696,7 +700,7 @@
       if (!name) { setAvailability('idle'); return; }
       // Simulate check — real version calls isAvailable() on contract
       setTimeout(() => {
-        const taken = ['alice', 'bob', 'eth', 'ipfs'].includes(name);
+        const taken = ['yourname', 'bob', 'eth', 'ipfs'].includes(name);
         setAvailability(taken ? 'taken' : 'available');
       }, 400);
       update();
@@ -717,7 +721,7 @@
   }
 
   function update() {
-    const name = (nameInput.value || '').trim().toLowerCase() || 'alice';
+    const name = (nameInput.value || '').trim().toLowerCase() || 'yourname';
     const t = tier(name.length);
     const totalUsd = t.usd * selectedYears;
     const totalEth = (t.eth * selectedYears).toFixed(5);
@@ -729,7 +733,7 @@
   }
 
   function buildPayload() {
-    const name = (nameInput.value || '').trim().toLowerCase() || 'alice';
+    const name = (nameInput.value || '').trim().toLowerCase() || 'yourname';
     const t = tier(name.length);
     const totalEth = (t.eth * selectedYears).toFixed(5);
     const totalUsd = t.usd * selectedYears;

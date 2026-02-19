@@ -80,6 +80,11 @@ send_json() {
   return 1
 }
 
+is_valid_cid() {
+  local cid="$1"
+  [[ "$cid" =~ ^Qm[1-9A-HJ-NP-Za-km-z]{44}$ || "$cid" =~ ^baf[abcdefghijklmnopqrstuvwxyz234567]{20,}$ ]]
+}
+
 NAMES=(demo demo-docs demo-admin demo-app demo-status)
 
 echo "Deploying surfaces from: $ROOT_DIR/demos"
@@ -112,8 +117,13 @@ for name in "${NAMES[@]}"; do
   })"
 
   cid="$(printf '%s' "$resp" | jq -r '.IpfsHash // empty')"
-  if [[ -z "$cid" ]]; then
+  if [[ -z "$cid" || "$cid" == "null" ]]; then
     echo "[$name] failed to parse CID" >&2
+    echo "$resp" >&2
+    exit 1
+  fi
+  if ! is_valid_cid "$cid"; then
+    echo "[$name] invalid CID from Pinata: $cid" >&2
     echo "$resp" >&2
     exit 1
   fi
@@ -182,6 +192,11 @@ for i in "${!NAMES[@]}"; do
   fi
 
   echo "[$name] setting CID"
+  if ! is_valid_cid "$cid"; then
+    echo "[$name] refusing to set invalid CID: $cid" >&2
+    FAILURES+=("$name:setCID-invalid-cid")
+    continue
+  fi
   set +e
   tx_json="$(send_json "setCID(string,string)" "$name" "$cid" 2>&1)"
   tx_code=$?

@@ -3,6 +3,13 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="icon" href="/favicon.ico" sizes="any">
+<link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png">
+<link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
+<link rel="icon" type="image/png" sizes="64x64" href="/favicon-64x64.png">
+<link rel="icon" type="image/png" sizes="192x192" href="/favicon-192x192.png">
+<link rel="apple-touch-icon" href="/apple-touch-icon.png">
+<link rel="manifest" href="/site.webmanifest">
 <title>ipns — name your content. own it forever.</title>
 <style>
   @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&family=Space+Mono:wght@400;700&family=Fira+Code:wght@400;700&display=swap');
@@ -439,15 +446,40 @@
     box-shadow: 0 0 16px rgba(255, 176, 0, 0.15), inset 0 0 8px rgba(255, 176, 0, 0.08);
   }
 
-  .register-btn.state-checking:hover,
-  .register-btn.state-success:hover {
+  .register-btn.state-checking:hover {
     background: rgba(255, 176, 0, 0.08);
     box-shadow: 0 0 16px rgba(255, 176, 0, 0.15), inset 0 0 8px rgba(255, 176, 0, 0.08);
   }
 
   .register-btn.state-success {
     background: transparent;
-    box-shadow: 0 0 14px rgba(0, 255, 65, 0.12), inset 0 0 8px rgba(0, 255, 65, 0.05);
+    border-color: var(--green);
+    color: var(--green);
+    text-shadow: none;
+    box-shadow: none;
+  }
+
+  .register-btn.state-success:hover {
+    background: rgba(0, 255, 65, 0.10);
+    color: var(--green);
+    border-color: var(--green);
+    text-shadow: 0 0 10px rgba(0, 255, 65, 0.38);
+    box-shadow: 0 0 0 1px rgba(0,255,65,0.3), 0 0 32px rgba(0, 255, 65, 0.45), inset 0 0 16px rgba(0, 255, 65, 0.12);
+  }
+
+  .register-btn.state-taken {
+    background: rgba(255, 60, 60, 0.08);
+    border-color: rgba(255, 60, 60, 0.9);
+    color: var(--red);
+    text-shadow: 0 0 8px rgba(255, 60, 60, 0.45);
+    box-shadow: 0 0 0 1px rgba(255,60,60,0.25), 0 0 24px rgba(255, 60, 60, 0.28), inset 0 0 10px rgba(255, 60, 60, 0.08);
+  }
+
+  .register-btn.state-taken:hover {
+    background: rgba(255, 60, 60, 0.12);
+    border-color: var(--red);
+    color: var(--red);
+    box-shadow: 0 0 0 1px rgba(255,60,60,0.35), 0 0 28px rgba(255, 60, 60, 0.34), inset 0 0 14px rgba(255, 60, 60, 0.1);
   }
 
   .register-btn.secondary {
@@ -596,8 +628,7 @@
     <div>
       <a href="https://docs.ipns.io/" style="margin-right: 16px;">docs</a>
       <a href="https://whitepaper.ipns.io/" style="margin-right: 16px;">whitepaper</a>
-      <a href="https://github.com/wyn-eth/ipns-site" style="margin-right: 16px;">github</a>
-      <a href="https://sepolia.basescan.org/address/0x1bbe8783884c23e1bf02f1221291696798002d8a">contract</a>
+      <a href="https://github.com/ipns-io/ipns-site">github</a>
     </div>
   </div>
 
@@ -612,7 +643,7 @@
 ---------------------------------</pre>
     <div class="tagline">name your content. own it forever.</div>
     <div class="hook">IPFS content is permanent. Your link to it should be too. <span>Now it is.</span></div>
-    <div class="hook" style="margin-top:8px;">Register once. Resolve on any compatible gateway.</div>
+    <div class="hook" style="margin-top:8px;">Register once. Resolve on any <a href="https://docs.ipns.io/" style="color: var(--amber); text-decoration: none;">compatible gateway</a>.</div>
   </div>
 
   <!-- Search / Register (Primary CTA) -->
@@ -622,7 +653,7 @@
       <input
         type="text"
         class="register-input glow"
-        placeholder="alice"
+        placeholder="yourname"
         maxlength="20"
         spellcheck="false"
         autocomplete="off"
@@ -630,7 +661,7 @@
       ><span class="register-suffix">.ipns.io</span>
     </div>
     <div class="register-preview" id="registerPreview">
-      <span class="preview-arrow">→</span> <span id="previewUrl">https://alice.ipns.io</span>
+      <span class="preview-arrow">→</span> <span id="previewUrl">https://yourname.ipns.io</span>
     </div>
     <button class="register-btn" id="registerBtn">check availability (demo)</button>
     <div class="register-hint">connect wallet → register onchain → set CID/IPNS</div>
@@ -679,7 +710,7 @@
     </p>
     <p>
       Good luck texting that to someone. IPNS.io turns that into 
-      <span class="highlight">alice.ipns.io</span> — 
+      <span class="highlight">yourname.ipns.io</span> — 
       a link that works in every browser, right now, no extensions needed.
     </p>
     <p>
@@ -795,26 +826,13 @@
 
   <div class="ascii-divider">── ·  ·  · ──</div>
 
-  <!-- Bottom CTA -->
-  <div class="section visible">
-    <div class="section-header">Ready</div>
-    <p style="margin-bottom: 14px; max-width: 600px;">
-      search a name. see the link. then register onchain.
-    </p>
-    <a class="register-btn secondary" href="#top" style="display: inline-block; text-decoration: none;">
-      back to top ↑
-    </a>
-  </div>
-
-  <div class="ascii-divider">── ·  ·  · ──</div>
-
   <div class="section visible">
     <div class="section-header">Trust Model</div>
     <p>
       Gateway resolution is open and reproducible from onchain state. The contract is the source of truth for name to CID mapping.
     </p>
     <p>
-      Current production gateway is operator-run for UX and speed. Anyone can run a compatible gateway against the same contract.
+      Current production gateways: <span class="highlight">ipns.io</span> and <span class="highlight">cid.run</span>. Anyone can run a <a href="https://docs.ipns.io/" style="color: var(--amber); text-decoration: none;">compatible gateway</a> against the same contract.
     </p>
     <p>
       Future work: first-party self-hosted pinning and broader gateway decentralization.
@@ -829,8 +847,21 @@
       A concrete threat model is published and maintained in public: contract risk, gateway risk, DNS dependency, key management, and mitigation priorities.
     </p>
     <p>
-      Review: <a href="https://github.com/wyn-eth/ipns-site/blob/main/THREAT_MODEL.md" style="color: var(--amber); text-decoration: none;">THREAT_MODEL.md</a>
+      Review: <a href="https://github.com/ipns-io/ipns-site/blob/main/THREAT_MODEL.md" style="color: var(--amber); text-decoration: none;">THREAT_MODEL.md</a>
     </p>
+  </div>
+
+  <div class="ascii-divider">── ·  ·  · ──</div>
+
+  <!-- Bottom CTA -->
+  <div class="section visible">
+    <div class="section-header">Ready</div>
+    <p style="margin-bottom: 14px; max-width: 600px;">
+      search a name. see the link. then register onchain.
+    </p>
+    <a class="register-btn secondary" href="#top" style="display: inline-block; text-decoration: none;">
+      Register your name
+    </a>
   </div>
 
   <!-- Footer -->
@@ -840,7 +871,10 @@
       <a href="#top">claim a name</a>
       <a href="https://whitepaper.ipns.io/">whitepaper</a>
       <a href="https://docs.ipns.io/">docs</a>
-      <a href="https://github.com/wyn-eth/ipns-site">github</a>
+      <a href="https://spec.ipns.io/">spec</a>
+      <a href="https://operator-quickstart.ipns.io/">operator quickstart</a>
+      <a href="https://treasury-policy.ipns.io/">treasury policy</a>
+      <a href="https://github.com/ipns-io/ipns-site">github</a>
     </div>
   </div>
 
@@ -1136,12 +1170,12 @@
     registerBtn.style.color = 'var(--green)';
     registerBtn.style.borderColor = 'var(--green-dim)';
     registerBtn.style.background = 'transparent';
-    registerBtn.classList.remove('state-checking', 'state-success');
+    registerBtn.classList.remove('state-checking', 'state-success', 'state-taken');
   }
 
   nameInput.addEventListener('input', (e) => {
     e.target.value = e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, '');
-    const name = e.target.value || 'alice';
+    const name = e.target.value || 'yourname';
     previewUrl.textContent = `https://${name}.ipns.io`;
     if (checkTimer) clearTimeout(checkTimer);
     if (postCheckTimer) clearTimeout(postCheckTimer);
@@ -1149,7 +1183,7 @@
   });
 
   nameInput.addEventListener('focus', () => {
-    const name = nameInput.value || 'alice';
+    const name = nameInput.value || 'yourname';
     previewUrl.textContent = `https://${name}.ipns.io`;
   });
 
@@ -1167,14 +1201,34 @@
     registerBtn.style.borderColor = 'var(--amber)';
     registerBtn.style.background = 'transparent';
     registerBtn.classList.remove('state-success');
+    registerBtn.classList.remove('state-taken');
     registerBtn.classList.add('state-checking');
     
     checkTimer = setTimeout(() => {
+      const takenNames = new Set(['admin', 'docs', 'www', 'app', 'status', 'spec', 'whitepaper', 'cid', 'ipns']);
+      if (takenNames.has(name.toLowerCase())) {
+        registerBtn.textContent = `✕ ${name}.ipns.io is taken`;
+        registerBtn.style.color = 'var(--red)';
+        registerBtn.style.borderColor = 'var(--red)';
+        registerBtn.style.background = 'transparent';
+        registerBtn.classList.remove('state-checking', 'state-success');
+        registerBtn.classList.add('state-taken');
+        postCheckTimer = setTimeout(() => {
+          registerBtn.textContent = 'try another name →';
+          registerBtn.style.color = 'var(--red)';
+          registerBtn.style.borderColor = 'var(--red)';
+          registerBtn.style.background = 'transparent';
+          registerBtn.classList.remove('state-checking', 'state-success');
+          registerBtn.classList.add('state-taken');
+        }, 1800);
+        return;
+      }
+
       registerBtn.textContent = `✓ ${name}.ipns.io is available`;
       registerBtn.style.color = 'var(--green)';
       registerBtn.style.borderColor = 'var(--green)';
       registerBtn.style.background = 'transparent';
-      registerBtn.classList.remove('state-checking');
+      registerBtn.classList.remove('state-checking', 'state-taken');
       registerBtn.classList.add('state-success');
       
       postCheckTimer = setTimeout(() => {
@@ -1182,7 +1236,7 @@
         registerBtn.style.color = 'var(--green)';
         registerBtn.style.borderColor = 'var(--green)';
         registerBtn.style.background = 'transparent';
-        registerBtn.classList.remove('state-checking');
+        registerBtn.classList.remove('state-checking', 'state-taken');
         registerBtn.classList.add('state-success');
       }, 2000);
     }, 1200);

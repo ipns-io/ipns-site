@@ -3,6 +3,10 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1" />
+<link rel="icon" type="image/png" sizes="16x16" href="../../https://raw.githubusercontent.com/ipns-io/ipns-site/main/assets/favicons/favicon_16.png">
+<link rel="icon" type="image/png" sizes="32x32" href="../../https://raw.githubusercontent.com/ipns-io/ipns-site/main/assets/favicons/favicon_32.png">
+<link rel="icon" type="image/png" sizes="64x64" href="../../https://raw.githubusercontent.com/ipns-io/ipns-site/main/assets/favicons/favicon_64.png">
+<link rel="apple-touch-icon" href="../../https://raw.githubusercontent.com/ipns-io/ipns-site/main/assets/favicons/final_favicon.png">
 <title>status.ipns.io mock</title>
 <link rel="stylesheet" href="../assets/theme.css" />
 </head>
@@ -50,7 +54,7 @@
       <div class="kpis">
         <div class="kpi"><div class="label">ipfs upstream</div><div class="value ok" id="ipfsState">reachable</div></div>
         <div class="kpi"><div class="label">cache hit ratio</div><div class="value" id="cacheRatio">68%</div></div>
-        <div class="kpi"><div class="label">sample name</div><div class="value">alice.ipns.io</div></div>
+        <div class="kpi"><div class="label">sample name</div><div class="value">yourname.ipns.io</div></div>
         <div class="kpi"><div class="label">sample resolve</div><div class="value ok" id="resolveState">cid found</div></div>
       </div>
     </article>
@@ -60,7 +64,7 @@
       <table class="table" id="incidentTable">
         <tr><th>Time (UTC)</th><th>Component</th><th>Status</th><th>Note</th></tr>
         <tr><td>2026-02-17T00:28:11Z</td><td>ipfs upstream</td><td class="warn">degraded</td><td>gateway origin typo fixed in worker env</td></tr>
-        <tr><td>2026-02-17T00:34:02Z</td><td>name resolution</td><td class="ok">resolved</td><td>contract + CID verified for <code>alice</code></td></tr>
+        <tr><td>2026-02-17T00:34:02Z</td><td>name resolution</td><td class="ok">resolved</td><td>contract + CID verified for <code>yourname</code></td></tr>
         <tr><td>2026-02-17T00:40:21Z</td><td>route config</td><td class="ok">resolved</td><td>wildcard route attached to worker</td></tr>
       </table>
     </article>
@@ -76,7 +80,7 @@
       <h3>Synthetic check controls</h3>
       <div class="controls">
         <label>Sample name
-          <input id="sampleName" value="alice" />
+          <input id="sampleName" value="yourname" />
         </label>
         <label>Expected CID prefix
           <input id="cidPrefix" value="bafy" />

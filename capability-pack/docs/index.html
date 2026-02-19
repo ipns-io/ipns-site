@@ -3,6 +3,10 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1" />
+<link rel="icon" type="image/png" sizes="16x16" href="../../https://raw.githubusercontent.com/ipns-io/ipns-site/main/assets/favicons/favicon_16.png">
+<link rel="icon" type="image/png" sizes="32x32" href="../../https://raw.githubusercontent.com/ipns-io/ipns-site/main/assets/favicons/favicon_32.png">
+<link rel="icon" type="image/png" sizes="64x64" href="../../https://raw.githubusercontent.com/ipns-io/ipns-site/main/assets/favicons/favicon_64.png">
+<link rel="apple-touch-icon" href="../../https://raw.githubusercontent.com/ipns-io/ipns-site/main/assets/favicons/final_favicon.png">
 <title>docs.ipns.io mock</title>
 <link rel="stylesheet" href="../assets/theme.css" />
 </head>
@@ -52,11 +56,11 @@ getPrice(string name, uint8 numYears)</pre>
 export CONTRACT="0x..."
 export PRIVATE_KEY="0x..."
 
-PRICE_WEI=$(cast call --rpc-url "$RPC_URL" "$CONTRACT" "getPrice(string,uint8)(uint256)" "alice" 1 | awk '{print $1}')
-cast send --rpc-url "$RPC_URL" --private-key "$PRIVATE_KEY" "$CONTRACT" "register(string,uint8)" "alice" 1 --value "$PRICE_WEI"
-cast send --rpc-url "$RPC_URL" --private-key "$PRIVATE_KEY" "$CONTRACT" "setCID(string,string)" "alice" "bafy..."
+PRICE_WEI=$(cast call --rpc-url "$RPC_URL" "$CONTRACT" "getPrice(string,uint8)(uint256)" "yourname" 1 | awk '{print $1}')
+cast send --rpc-url "$RPC_URL" --private-key "$PRIVATE_KEY" "$CONTRACT" "register(string,uint8)" "yourname" 1 --value "$PRICE_WEI"
+cast send --rpc-url "$RPC_URL" --private-key "$PRIVATE_KEY" "$CONTRACT" "setCID(string,string)" "yourname" "bafy..."
 
-curl -i https://alice.ipns.io/</pre>
+curl -i https://yourname.ipns.io/</pre>
       <div class="controls" style="margin-top:10px;">
         <button id="copyBtn">Copy flow</button>
       </div>

@@ -1,0 +1,85 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<link rel="icon" type="image/png" sizes="16x16" href="../https://raw.githubusercontent.com/ipns-io/ipns-site/main/assets/favicons/favicon_16.png">
+<link rel="icon" type="image/png" sizes="32x32" href="../https://raw.githubusercontent.com/ipns-io/ipns-site/main/assets/favicons/favicon_32.png">
+<link rel="icon" type="image/png" sizes="64x64" href="../https://raw.githubusercontent.com/ipns-io/ipns-site/main/assets/favicons/favicon_64.png">
+<link rel="apple-touch-icon" href="../https://raw.githubusercontent.com/ipns-io/ipns-site/main/assets/favicons/final_favicon.png">
+<title>spec.ipns.io — Resolution Spec v1</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@300;400;500;600&family=IBM+Plex+Sans:wght@300;400;600;700&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{--bg:#fff;--fg:#000;--dim:#666;--border:#e0e0e0;--code:#f4f4f4;--accent:#0050ff}
+body{font-family:'IBM Plex Sans',sans-serif;background:var(--bg);color:var(--fg)}
+.wrap{max-width:920px;margin:0 auto;padding:28px}
+.top{display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid var(--border);padding-bottom:14px;margin-bottom:28px}
+.top a{text-decoration:none;color:var(--fg);font-family:'IBM Plex Mono',monospace;font-size:12px}
+h1{font-size:34px;margin-bottom:8px}
+.tag{font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--accent);letter-spacing:.08em;text-transform:uppercase;margin-bottom:16px}
+h2{font-size:20px;margin:28px 0 10px}
+p,li{font-size:14px;line-height:1.75;color:var(--dim)}
+ul,ol{padding-left:20px}
+code,pre{font-family:'IBM Plex Mono',monospace}
+code{background:var(--code);border:1px solid var(--border);padding:1px 6px;font-size:12px;color:var(--fg)}
+pre{background:var(--code);border:1px solid var(--border);padding:14px;font-size:12px;line-height:1.6;overflow:auto;margin-top:8px}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:12px}
+.card{border:1px solid var(--border);padding:12px}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="top">
+    <a href="https://www.ipns.io/">IPNS.io</a>
+    <div>
+      <a href="https://docs.ipns.io/" style="margin-right:14px">docs</a>
+      <a href="https://github.com/ipns-io/ipns-site/blob/main/SPEC.md">spec.md</a>
+    </div>
+  </div>
+
+  <div class="tag">IPNS Registry Resolution Spec</div>
+  <h1>v1</h1>
+  <p>Canonical mapping is onchain: <code>name -&gt; cid</code>. Gateways are interchangeable readers of the same public state.</p>
+
+  <h2>Canonical State</h2>
+  <div class="grid">
+    <div class="card"><p><strong>Chain</strong><br>Base (mainnet / sepolia)</p></div>
+    <div class="card"><p><strong>Read method</strong><br><code>resolve(string) -&gt; string</code></p></div>
+  </div>
+
+  <h2>Name Normalization</h2>
+  <ol>
+    <li>Lowercase</li>
+    <li>Trim whitespace</li>
+    <li>Enforce <code>^[a-z0-9-]{1,20}$</code></li>
+  </ol>
+
+  <h2>Resolution Algorithm</h2>
+  <pre>1. normalize(name)
+2. cid = contract.resolve(name)
+3. if cid is empty => unresolved
+4. fetch /ipfs/{cid}
+5. return content + freshness metadata</pre>
+
+  <h2>Publisher Write Path</h2>
+  <pre>if isAvailable(name):
+  price = getPrice(name, years)
+  register(name, years, value=price)
+
+setCID(name, cid)
+assert resolve(name) == cid</pre>
+
+  <h2>Compatibility Requirement</h2>
+  <p>Any gateway implementing this spec against the same contract must resolve identical output for the same <code>name</code> at the same chain state.</p>
+
+  <h2>References</h2>
+  <ul>
+    <li><a href="https://github.com/ipns-io/ipns-contracts">Contracts</a></li>
+    <li><a href="https://github.com/ipns-io/ipns-gateway">Gateway</a></li>
+    <li><a href="https://github.com/ipns-io/ipns-site/blob/main/THREAT_MODEL.md">Threat model</a></li>
+  </ul>
+</div>
+</body>
+</html>

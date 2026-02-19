@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="icon" type="image/png" sizes="16x16" href="../https://raw.githubusercontent.com/ipns-io/ipns-site/main/assets/favicons/favicon_16.png">
+<link rel="icon" type="image/png" sizes="32x32" href="../https://raw.githubusercontent.com/ipns-io/ipns-site/main/assets/favicons/favicon_32.png">
+<link rel="icon" type="image/png" sizes="64x64" href="../https://raw.githubusercontent.com/ipns-io/ipns-site/main/assets/favicons/favicon_64.png">
+<link rel="apple-touch-icon" href="../https://raw.githubusercontent.com/ipns-io/ipns-site/main/assets/favicons/final_favicon.png">
+<title>Operator Quickstart — IPNS Gateway</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;700&display=swap');
+  :root {
+    --bg: #0a0a0a;
+    --panel: #111;
+    --border: #1b1b1b;
+    --text: #b7b7b7;
+    --dim: #666;
+    --green: #00ff41;
+    --amber: #ffb000;
+    --cyan: #00e5ff;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 14px;
+    line-height: 1.7;
+  }
+  .wrap { max-width: 920px; margin: 0 auto; padding: 0 20px 48px; }
+  .topbar {
+    border-bottom: 1px solid var(--border);
+    padding: 12px 0;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    color: var(--dim);
+    font-size: 12px;
+  }
+  .topbar a { color: var(--dim); text-decoration: none; margin-left: 14px; }
+  .topbar a:hover { color: var(--green); }
+  h1 {
+    color: var(--green);
+    font-size: 24px;
+    margin-top: 26px;
+  }
+  .sub { color: var(--dim); margin-top: 8px; }
+  h2 {
+    color: var(--amber);
+    margin-top: 22px;
+    font-size: 14px;
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+  }
+  p, li { margin-top: 8px; }
+  ul, ol { margin-left: 18px; }
+  .card {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    padding: 16px;
+    margin-top: 12px;
+  }
+  pre {
+    margin-top: 10px;
+    background: #0d0d0d;
+    border: 1px solid var(--border);
+    color: #d6d6d6;
+    padding: 12px;
+    overflow-x: auto;
+  }
+  code { color: var(--cyan); }
+  .ok { color: var(--green); }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="topbar">
+    <span>ipns gateway operator docs</span>
+    <div>
+      <a href="https://www.ipns.io/">www</a>
+      <a href="https://docs.ipns.io/">docs</a>
+      <a href="https://spec.ipns.io/">spec</a>
+      <a href="https://github.com/ipns-io/ipns-gateway">gateway repo</a>
+    </div>
+  </div>
+
+  <h1>Operator Quickstart (1 Page)</h1>
+  <p class="sub">Run an independent gateway that resolves the same onchain registry and serves names on your own domain.</p>
+
+  <h2>What You Get</h2>
+  <div class="card">
+    <ul>
+      <li><code>yourname.yourdomain.tld</code> resolution from the same IPNS registry contract</li>
+      <li>Wildcard host routing + path mode fallback</li>
+      <li>Optional apex landing page via <code>LANDING_CID</code></li>
+    </ul>
+  </div>
+
+  <h2>1) Deploy Worker</h2>
+  <div class="card">
+    <p>Deploy the reference worker:</p>
+    <pre><code>wrangler deploy</code></pre>
+    <p>Set Worker environment variables:</p>
+    <pre><code>APEX_DOMAIN=yourdomain.tld
+BASE_RPC_URL=https://mainnet.base.org
+CONTRACT_ADDRESS=0x...your_registry_contract
+IPFS_GATEWAY_ORIGIN=https://ipfs.io/ipfs
+ENABLE_DNSLINK=false</code></pre>
+  </div>
+
+  <h2>2) Add Routes + DNS</h2>
+  <div class="card">
+    <p>Cloudflare Worker Routes:</p>
+    <pre><code>yourdomain.tld/*
+*.yourdomain.tld/*</code></pre>
+    <p>Cloudflare DNS (proxied / orange cloud):</p>
+    <pre><code>A  @  192.0.2.1
+A  *  192.0.2.1</code></pre>
+  </div>
+
+  <h2>3) Verify</h2>
+  <div class="card">
+    <pre><code>curl -sI https://yourdomain.tld/ | grep -iE "x-ipfs-path|cache-control|http/"
+curl -sI https://yourname.yourdomain.tld/ | grep -iE "x-ipfs-path|http/"</code></pre>
+    <p class="ok">Expected: HTTP 200 for registered names, 404 for unregistered names.</p>
+  </div>
+
+  <h2>4) Optional Local Run (Node)</h2>
+  <div class="card">
+    <pre><code>BASE_RPC_URL="https://mainnet.base.org" \
+CONTRACT_ADDRESS="0x...your_registry_contract" \
+APEX_DOMAIN="yourdomain.tld" \
+IPFS_GATEWAY_ORIGIN="https://ipfs.io/ipfs" \
+node server.js</code></pre>
+    <pre><code>curl http://localhost:8787/yourname/</code></pre>
+  </div>
+
+  <h2>Operator Policy</h2>
+  <div class="card">
+    <ol>
+      <li>Do not rewrite registry results.</li>
+      <li>Publish your gateway domain and resolver config.</li>
+      <li>Document your uptime/SLA expectations.</li>
+      <li>Keep cache TTL short enough to reflect CID updates quickly.</li>
+    </ol>
+  </div>
+</div>
+</body>
+</html>

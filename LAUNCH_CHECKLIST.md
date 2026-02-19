@@ -41,7 +41,7 @@ curl -I https://ipns.io/
 curl -I https://www.ipns.io/
 curl -I https://cid.run/
 curl -I https://www.cid.run/
-curl -I https://alice.cid.run/
+curl -I https://yourname.cid.run/
 ```
 
 Expected:
@@ -49,15 +49,15 @@ Expected:
 - `https://www.ipns.io/` returns Cloudflare headers
 - `https://cid.run/` returns Cloudflare headers and `x-ipfs-path`
 - `https://www.cid.run/` returns Cloudflare headers and `x-ipfs-path`
-- `https://alice.cid.run/` returns `404` until that name is registered
+- `https://yourname.cid.run/` returns `404` until that name is registered
 
 ## 4) One-shot pass/fail check
 ```bash
-for h in cid.run www.cid.run alice.cid.run; do
+for h in cid.run www.cid.run yourname.cid.run; do
   code=$(curl -s -o /dev/null -w "%{http_code}" "https://$h/")
   server=$(curl -sI "https://$h/" | awk -F': ' 'tolower($1)=="server"{print $2}' | tr -d '\r')
   ipfs=$(curl -sI "https://$h/" | awk -F': ' 'tolower($1)=="x-ipfs-path"{print $2}' | tr -d '\r')
-  if [ "$h" = "alice.cid.run" ]; then
+  if [ "$h" = "yourname.cid.run" ]; then
     if [ "$code" = "404" ] && [ "$server" = "cloudflare" ]; then
       echo "PASS $h  $code  $server  (expected unresolved name)"
     else

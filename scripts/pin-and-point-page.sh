@@ -50,6 +50,12 @@ extract_tx_hash() {
   printf '%s' "$tx"
 }
 
+is_valid_cid() {
+  local cid="$1"
+  # CIDv0 starts with Qm..., CIDv1 base32 typically starts with baf...
+  [[ "$cid" =~ ^Qm[1-9A-HJ-NP-Za-km-z]{44}$ || "$cid" =~ ^baf[abcdefghijklmnopqrstuvwxyz234567]{20,}$ ]]
+}
+
 send_json() {
   local method_sig="$1"
   shift
@@ -101,8 +107,13 @@ PIN_RESP="$({
     -F "file=@${TMP_DIR}/index.html;filename=index.html"
 })"
 CID="$(printf '%s' "$PIN_RESP" | jq -r '.IpfsHash // empty')"
-if [[ -z "$CID" ]]; then
+if [[ -z "$CID" || "$CID" == "null" ]]; then
   echo "Failed to parse CID from Pinata response" >&2
+  echo "$PIN_RESP" >&2
+  exit 1
+fi
+if ! is_valid_cid "$CID"; then
+  echo "Pinata returned invalid CID: $CID" >&2
   echo "$PIN_RESP" >&2
   exit 1
 fi
@@ -154,6 +165,10 @@ else
 fi
 
 echo "[$NAME] setCID"
+if ! is_valid_cid "$CID"; then
+  echo "Refusing to set invalid CID onchain for $NAME: $CID" >&2
+  exit 1
+fi
 SET_OUT="$(send_json "setCID(string,string)" "$NAME" "$CID")"
 SET_TX="$(extract_tx_hash "$SET_OUT")"
 if [[ -z "$SET_TX" ]]; then

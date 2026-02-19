@@ -3,6 +3,10 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1" />
+<link rel="icon" type="image/png" sizes="16x16" href="../https://raw.githubusercontent.com/ipns-io/ipns-site/main/assets/favicons/favicon_16.png">
+<link rel="icon" type="image/png" sizes="32x32" href="../https://raw.githubusercontent.com/ipns-io/ipns-site/main/assets/favicons/favicon_32.png">
+<link rel="icon" type="image/png" sizes="64x64" href="../https://raw.githubusercontent.com/ipns-io/ipns-site/main/assets/favicons/favicon_64.png">
+<link rel="apple-touch-icon" href="../https://raw.githubusercontent.com/ipns-io/ipns-site/main/assets/favicons/final_favicon.png">
 <title>docs.ipns.io — Developer Reference</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@300;400;500;600&family=IBM+Plex+Sans:wght@300;400;600;700&display=swap" rel="stylesheet">
@@ -191,6 +195,17 @@
     line-height: 1.75;
     color: var(--dim);
     margin-bottom: 16px;
+  }
+
+  ul, ol {
+    margin: 0 0 16px 22px;
+    color: var(--dim);
+  }
+
+  li {
+    font-size: 14px;
+    line-height: 1.75;
+    margin-bottom: 2px;
   }
 
   /* ── CODE BLOCKS ── */
@@ -435,7 +450,7 @@
   <nav class="topbar-nav">
     <a href="https://www.ipns.io/">www</a>
     <a href="https://docs.ipns.io/" class="active">docs</a>
-    <a href="https://admin.ipns.io/">admin</a>
+    <a href="https://spec.ipns.io/">spec</a>
     <a href="https://app.ipns.io/">app</a>
     <a href="https://status.ipns.io/">status</a>
   </nav>
@@ -471,6 +486,18 @@
   </div>
   <div class="sidebar-section">
     <div class="sidebar-heading">Integrations</div>
+    <a class="sidebar-link" href="https://spec.ipns.io/" target="_blank" rel="noopener">
+      <span class="dot"></span>Spec (v1)
+    </a>
+    <a class="sidebar-link" href="#treasury-policy">
+      <span class="dot"></span>Treasury Policy
+    </a>
+    <a class="sidebar-link" href="#operator-quickstart">
+      <span class="dot"></span>Operator Runbook
+    </a>
+    <a class="sidebar-link" href="#admin-note" data-target="admin-note">
+      <span class="dot"></span>Admin Access
+    </a>
     <a class="sidebar-link" href="#mcp" data-target="mcp">
       <span class="dot"></span>MCP / AI Agents
     </a>
@@ -506,18 +533,18 @@
       <pre id="code-quick"><span class="t-comment"># 1. Get the exact price (ETH, in wei)</span>
 <span class="t-keyword">export</span> CONTRACT=<span class="t-string">"0x7Bb7f1C90DeDd39F58D4F0EDc96B9722997CCc2d"</span>
 PRICE=$(cast call --rpc-url <span class="t-string">"$BASE_RPC"</span> <span class="t-string">"$CONTRACT"</span> \
-  <span class="t-string">"getPrice(string,uint8)(uint256)"</span> <span class="t-string">"alice"</span> <span class="t-num">1</span>)
+  <span class="t-string">"getPrice(string,uint8)(uint256)"</span> <span class="t-string">"yourname"</span> <span class="t-num">1</span>)
 
 <span class="t-comment"># 2. Register the name for 1 year</span>
 cast send --rpc-url <span class="t-string">"$BASE_RPC"</span> --private-key <span class="t-string">"$PK"</span> <span class="t-string">"$CONTRACT"</span> \
-  <span class="t-string">"register(string,uint8)"</span> <span class="t-string">"alice"</span> <span class="t-num">1</span> --value <span class="t-string">"$PRICE"</span>
+  <span class="t-string">"register(string,uint8)"</span> <span class="t-string">"yourname"</span> <span class="t-num">1</span> --value <span class="t-string">"$PRICE"</span>
 
 <span class="t-comment"># 3. Point it at your content</span>
 cast send --rpc-url <span class="t-string">"$BASE_RPC"</span> --private-key <span class="t-string">"$PK"</span> <span class="t-string">"$CONTRACT"</span> \
-  <span class="t-string">"setCID(string,string)"</span> <span class="t-string">"alice"</span> <span class="t-string">"bafybeibi4xw34..."</span>
+  <span class="t-string">"setCID(string,string)"</span> <span class="t-string">"yourname"</span> <span class="t-string">"bafybeibi4xw34..."</span>
 
 <span class="t-comment"># Your site is live at:</span>
-<span class="t-comment"># https://alice.ipns.io/</span></pre>
+<span class="t-comment"># https://yourname.ipns.io/</span></pre>
     </div>
   </section>
 
@@ -626,7 +653,7 @@ cast send --rpc-url <span class="t-string">"$BASE_RPC"</span> --private-key <spa
         <tr><td>2 chars</td><td>$25</td><td><code>ab.ipns.io</code></td></tr>
         <tr><td>3 chars</td><td>$10</td><td><code>eth.ipns.io</code></td></tr>
         <tr><td>4 chars</td><td>$5</td><td><code>ipfs.ipns.io</code></td></tr>
-        <tr><td>5+ chars</td><td>$1</td><td><code>alice.ipns.io</code></td></tr>
+        <tr><td>5+ chars</td><td>$1</td><td><code>yourname.ipns.io</code></td></tr>
       </tbody>
     </table>
 
@@ -667,7 +694,7 @@ cast send --rpc-url <span class="t-string">"$BASE_RPC"</span> --private-key <spa
       <div class="tool-card-body">
         <div class="field-row">
           <label>Name</label>
-          <input id="resolveName" value="alice" />
+          <input id="resolveName" value="yourname" />
         </div>
         <div class="field-row">
           <label>Tool</label>
@@ -701,6 +728,38 @@ cast send --rpc-url <span class="t-string">"$BASE_RPC"</span> --private-key <spa
            -p 8080:8080 \
            ghcr.io/ipns-io/gateway:latest</pre>
     </div>
+  </section>
+
+  <section class="doc-section" id="treasury-policy">
+    <div class="doc-tag">Governance</div>
+    <h1>Treasury Policy</h1>
+    <p>Protocol revenue flows to the IPNS Treasury Safe and is governed by signer policy. Operational expenses, security work, and ecosystem grants are approved through that treasury process.</p>
+    <ul>
+      <li>Treasury Safe: <code>0x30f20a0705068Cbe832bd60cDa8A39f9f9f665B7</code></li>
+      <li>Signer policy and threshold are published transparently</li>
+      <li>Major spending categories are documented before disbursement</li>
+    </ul>
+  </section>
+
+  <section class="doc-section" id="operator-quickstart">
+    <div class="doc-tag">Operations</div>
+    <h1>Operator Runbook</h1>
+    <p>For a healthy operator setup, run at least one independent gateway that resolves directly from the onchain registry and verifies returned CIDs before serving content.</p>
+    <ul>
+      <li>Use independent RPC providers with failover</li>
+      <li>Cache reads for short windows (for example 15–60 seconds)</li>
+      <li>Monitor unresolved names and upstream IPFS availability</li>
+      <li>Expose health/readiness endpoints and alert on sustained errors</li>
+    </ul>
+  </section>
+
+  <!-- ADMIN NOTE -->
+  <section class="doc-section" id="admin-note">
+    <div class="doc-tag">Operations</div>
+    <h1>Admin Access</h1>
+    <p><code>admin.ipns.io</code> is a demo/operator surface, not a public control plane.</p>
+    <p>Production admin actions (pricing, reserve list, treasury updates) are executed by multisig governance with onchain transactions.</p>
+    <p>An emergency <code>pause/unpause</code> control exists to halt user write actions during incident response, while read resolution remains available.</p>
   </section>
 
   <!-- MCP -->
@@ -802,12 +861,12 @@ cast call --rpc-url <span class="t-string">"$BASE_RPC"</span> <span class="t-str
 <span class="t-comment">// Register a name</span>
 <span class="t-keyword">const</span> price = <span class="t-keyword">await</span> client.<span class="t-fn">readContract</span>({
   address: CONTRACT, abi: ABI,
-  functionName: <span class="t-string">'getPrice'</span>, args: [<span class="t-string">'alice'</span>, <span class="t-num">1</span>]
+  functionName: <span class="t-string">'getPrice'</span>, args: [<span class="t-string">'yourname'</span>, <span class="t-num">1</span>]
 })
 
 <span class="t-keyword">await</span> wallet.<span class="t-fn">writeContract</span>({
   address: CONTRACT, abi: ABI,
-  functionName: <span class="t-string">'register'</span>, args: [<span class="t-string">'alice'</span>, <span class="t-num">1</span>], value: price
+  functionName: <span class="t-string">'register'</span>, args: [<span class="t-string">'yourname'</span>, <span class="t-num">1</span>], value: price
 })</pre>
     </div>
   </section>
