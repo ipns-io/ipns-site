@@ -101,6 +101,11 @@ Never write `setCID` unless:
 1. CID is non-empty and not `"null"`.
 2. `https://ipfs.io/ipfs/<CID>/index.html` returns `200`.
 3. For sites with favicon: `https://ipfs.io/ipfs/<CID>/favicon.ico` returns `200`.
+4. Use guarded helper only:
+```bash
+./scripts/safe-setcid.sh <name> <cid>
+```
+5. Never run raw `cast send ... setCID(...)` with placeholders like `<WWW_BUNDLE_CID>`.
 
 ## 7) Name Registration Budget (Current Plan)
 Planned names:
