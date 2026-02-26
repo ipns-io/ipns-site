@@ -1173,9 +1173,16 @@
 
   function getEnv() {
     const host = window.location.hostname;
-    if (host === 'localhost' || host === '127.0.0.1') return 'development';
+    if (host === 'localhost' || host === '127.0.0.1') return 'test';
     if (host.includes('staging') || host.includes('preview') || host.endsWith('.pages.dev')) return 'staging';
-    return 'production';
+    return 'prod';
+  }
+
+  function normalizeEnv(env) {
+    if (env === 'prod' || env === 'staging' || env === 'test') return env;
+    if (env === 'production') return 'prod';
+    if (env === 'development') return 'test';
+    return getEnv();
   }
 
   function getSessionId() {
@@ -1195,13 +1202,13 @@
       event_id: fields.event_id || randomId(),
       timestamp: fields.timestamp || new Date().toISOString(),
       surface: fields.surface || 'ipns.io',
-      env: fields.env || getEnv(),
+      env: normalizeEnv(fields.env),
       session_id: fields.session_id || getSessionId(),
       wallet: fields.wallet || '',
       name: fields.name || '',
       cid: fields.cid || '',
       tx_hash: fields.tx_hash || '',
-      chain_id: fields.chain_id || '8453',
+      chain_id: Number.isFinite(Number(fields.chain_id)) ? Number(fields.chain_id) : 8453,
       request_id: fields.request_id || randomId(),
       operation_id: fields.operation_id || randomId()
     };

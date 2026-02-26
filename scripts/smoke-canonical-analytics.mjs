@@ -28,18 +28,25 @@ function randomId() {
   return `${Date.now()}-${Math.random().toString(16).slice(2)}`;
 }
 
+function normalizeEnv(env) {
+  if (env === "prod" || env === "staging" || env === "test") return env;
+  if (env === "production") return "prod";
+  if (env === "development") return "test";
+  return "test";
+}
+
 function payload(surface, input = {}) {
   return {
     event_id: input.event_id || randomId(),
     timestamp: input.timestamp || new Date().toISOString(),
     surface,
-    env: input.env || "test",
+    env: normalizeEnv(input.env),
     session_id: input.session_id || randomId(),
     wallet: input.wallet || "",
     name: input.name || "",
     cid: input.cid || "",
     tx_hash: input.tx_hash || "",
-    chain_id: input.chain_id || "8453",
+    chain_id: Number.isFinite(Number(input.chain_id)) ? Number(input.chain_id) : 8453,
     request_id: input.request_id || randomId(),
     operation_id: input.operation_id || randomId(),
   };
