@@ -637,7 +637,7 @@
       <a href="https://status.ipns.io/" style="margin-right: 16px;">status</a>
       <a href="https://docs.ipns.io/" style="margin-right: 16px;">docs</a>
       <a href="https://whitepaper.ipns.io/" style="margin-right: 16px;">whitepaper</a>
-      <a href="https://github.com/ipns-io/ipns-site">github</a>
+      <a href="https://github.com/ipns-io/ipns-site">git</a>
     </div>
   </div>
 
@@ -699,6 +699,10 @@
       The smart contract lives on <span class="highlight-amber">Base</span>.
       Your name is yours until it expires. Renewals keep it alive (anti-squatting).
       Resolution is permissionless: any gateway or client can read the chain and resolve names.
+    </p>
+    <p>
+      For launch, IPNS supports <span class="highlight">primary names only</span>.
+      Subnames are intentionally out of scope until a hardened v2 design is implemented and audited.
     </p>
     <p class="comment" style="margin-top: 14px;">
       Note: this is not the IPFS <span class="highlight">IPNS protocol</span>. This is a registry that can point to IPFS CIDs or IPNS names.
@@ -884,7 +888,7 @@
       <a href="https://spec.ipns.io/">spec</a>
       <a href="https://operator-quickstart.ipns.io/">operator quickstart</a>
       <a href="https://treasury-policy.ipns.io/">treasury policy</a>
-      <a href="https://github.com/ipns-io/ipns-site">github</a>
+      <a href="https://github.com/ipns-io/ipns-site">git</a>
     </div>
   </div>
 
@@ -1182,7 +1186,9 @@
   const ABI = [
     'function isAvailable(string name) view returns (bool)',
     'function getPrice(string name,uint8 years) view returns (uint256)',
-    'function register(string name,uint8 years) payable'
+    'function register(string name,uint8 years) payable',
+    'function setCID(string name,string cid)',
+    'function getRecord(string name) view returns (address owner,string cid,string label,uint64 createdAt,uint64 expiresAt,bool active)'
   ];
   const readProvider = new ethers.JsonRpcProvider(BASE_RPC);
   const readContract = new ethers.Contract(CONTRACT_ADDRESS, ABI, readProvider);
@@ -1260,8 +1266,19 @@
     try {
       const available = await readContract.isAvailable(name);
       if (!available) {
+        pendingName = name;
         setButtonState(`✕ ${name}.ipns.io is taken`, 'var(--red)', 'var(--red)', 'state-taken');
         flowState = 'taken';
+        updateTerminal([
+          `# ${name}.ipns.io is already registered`,
+          '# click "connect wallet to update CID →"',
+          '# if your wallet owns this name you can set a new CID now'
+        ]);
+        setTimeout(() => {
+          if (flowState === 'taken' && pendingName === name) {
+            setButtonState('connect wallet to update CID →', 'var(--amber)', 'var(--amber)', 'state-taken');
+          }
+        }, 900);
         return;
       }
 
@@ -1390,6 +1407,67 @@
     }
   }
 
+  async function connectAndUpdateCid() {
+    if (!window.ethereum) {
+      setButtonState('install wallet (metamask) →', 'var(--red)', 'var(--red)', 'state-taken');
+      flowState = 'error';
+      return;
+    }
+    try {
+      setButtonState('connecting wallet...', 'var(--amber)', 'var(--amber)', 'state-checking');
+      await window.ethereum.request({ method: 'eth_requestAccounts' });
+      await ensureBaseMainnet();
+
+      const browserProvider = new ethers.BrowserProvider(window.ethereum);
+      const signer = await browserProvider.getSigner();
+      const wallet = await signer.getAddress();
+      const writeContract = new ethers.Contract(CONTRACT_ADDRESS, ABI, signer);
+      const record = await readContract.getRecord(pendingName);
+      const owner = (record && record[0]) ? String(record[0]) : '';
+
+      if (!owner || owner.toLowerCase() !== wallet.toLowerCase()) {
+        setButtonState('name owned by another wallet', 'var(--red)', 'var(--red)', 'state-taken');
+        updateTerminal([
+          `# ${pendingName}.ipns.io is taken`,
+          `# connected wallet: ${wallet}`,
+          `# onchain owner: ${owner || '(unknown)'}`,
+          '# switch to owner wallet, then retry'
+        ]);
+        flowState = 'taken';
+        return;
+      }
+
+      const cidInput = window.prompt(`Set CID for ${pendingName}.ipns.io`, '');
+      const cid = (cidInput || '').trim();
+      if (!cid) {
+        setButtonState('cid update canceled', 'var(--red)', 'var(--red)', 'state-taken');
+        flowState = 'taken';
+        return;
+      }
+
+      setButtonState('confirm setCID tx...', 'var(--amber)', 'var(--amber)', 'state-checking');
+      const setTx = await writeContract.setCID(pendingName, cid);
+      await setTx.wait();
+
+      setButtonState(`cid updated ✓ ${pendingName}.ipns.io`, 'var(--green)', 'var(--green)', 'state-success');
+      flowState = 'updated';
+      updateTerminal([
+        `# setCID confirmed`,
+        `# tx: ${setTx.hash}`,
+        `# live: https://${pendingName}.ipns.io`
+      ]);
+    } catch (err) {
+      console.error(err);
+      const msg = String(err && err.message ? err.message : err);
+      if (msg.includes('user rejected')) {
+        setButtonState('wallet request canceled →', 'var(--red)', 'var(--red)', 'state-taken');
+      } else {
+        setButtonState('setCID failed, retry →', 'var(--red)', 'var(--red)', 'state-taken');
+      }
+      flowState = 'taken';
+    }
+  }
+
   function openBridgeAndPoll() {
     const neededWei = pendingPrice + GAS_BUFFER_WEI;
     const topupWei = (neededWei * 115n) / 100n;
@@ -1447,6 +1525,10 @@
     }
     if (flowState === 'needs_bridge' && pendingName === name) {
       openBridgeAndPoll();
+      return;
+    }
+    if (flowState === 'taken' && pendingName === name) {
+      await connectAndUpdateCid();
       return;
     }
     if (flowState === 'ready_to_connect' && pendingName === name) {
