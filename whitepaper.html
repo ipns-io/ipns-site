@@ -393,7 +393,7 @@
       The gateway is intentionally thin. It's a read-only proxy that translates between the on-chain registry and the browser. It doesn't store names. It doesn't store content. It reads from two public sources (Base and IPFS) and serves the result.
     </p>
     <p>
-      Trust model, explicitly: a browser user trusts the gateway they are using for delivery. A malicious gateway could censor or alter HTTP responses. The protocol still protects ownership and name->CID state on-chain, but the final delivery hop is a trust point. The mitigation is protocol-level portability: use subdomain isolation, open source the gateway, and make switching gateways trivial.
+      Trust model, explicitly: a browser user trusts the gateway they are using for delivery. A malicious gateway could censor or alter HTTP responses. The protocol still protects ownership and name->CID state on-chain, but the final delivery hop is a trust point. The mitigation is protocol-level portability: open source the gateway and make switching gateways trivial.
     </p>
     <p>
       The gateway code is fully open source. Anyone can clone the repository, point it at the same contract, and run their own gateway on their own domain. A community member could run <code>yourname.ipns-gateway.org</code>. A company could run <code>yourname.names.example.com</code>. They all read the same public registry and serve the same content. Different doors, same room.
@@ -424,13 +424,12 @@ Environment:
   CONTRACT_ADDRESS
   IPFS_FETCH_MODE = local | upstream
 
-<span class="comment">// v0 algorithm (subdomains)</span>
+<span class="comment">// launch algorithm (primary names only)</span>
 1) Parse host:
    - If Host == ipns.io: resolve via path mode (see below)
    - If Host matches *.ipns.io:
        a) Split labels left of ipns.io
        b) name = last label (e.g. yourname)
-       c) sub  = optional label before it (e.g. blog) <span class="comment">// v0 supports blog.yourname</span>
 
 2) Normalize (must match contract):
    - lowercase
@@ -439,8 +438,7 @@ Environment:
    - length 1..63
 
 3) Resolve:
-   - If sub exists: call resolveSub(name, sub) <span class="comment">// returns sub CID or parent CID fallback</span>
-   - Else: call resolve(name)
+   - call resolve(name)
    - If empty: 404 (name not found / expired / no CID)
 
 4) Fetch bytes:
@@ -768,7 +766,10 @@ owner:    0x... <span class="comment">(multisig)</span></div>
       For a developer or agent, deploying content requires two actions: pin to IPFS, register on Base. Everything else (resolution, delivery, caching) is handled by the protocol and whatever gateway the user accesses.
     </p>
     <p>
-      Compatibility roadmap: support DNSLink resolution on gateways, maintain subdomain-first delivery for origin isolation, and add optional native IPNS resolution/import as a gateway feature. Core protocol stays minimal: name ownership and name->CID state on-chain.
+      Compatibility roadmap: support DNSLink resolution on gateways, keep launch behavior focused on primary name resolution, and add optional native IPNS resolution/import as a gateway feature. Subnames are deferred to a hardened v2 design. Core protocol stays minimal: name ownership and name->CID state on-chain.
+    </p>
+    <p>
+      <strong>For launch, IPNS supports primary names only. Subnames are intentionally out of scope until a hardened v2 design is implemented and audited.</strong>
     </p>
   </div>
 

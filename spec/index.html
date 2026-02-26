@@ -40,6 +40,7 @@ pre{background:var(--code);border:1px solid var(--border);padding:14px;font-size
   <div class="tag">IPNS Registry Resolution Spec</div>
   <h1>v1</h1>
   <p>Canonical mapping is onchain: <code>name -&gt; cid</code>. Gateways are interchangeable readers of the same public state.</p>
+  <p><strong>For launch, IPNS supports primary names only. Subnames are intentionally out of scope until a hardened v2 design is implemented and audited.</strong></p>
 
   <h2>Canonical State</h2>
   <div class="grid">
@@ -55,8 +56,8 @@ pre{background:var(--code);border:1px solid var(--border);padding:14px;font-size
   </ol>
 
   <h2>Resolution Algorithm</h2>
-  <pre>1. normalize(name)
-2. cid = contract.resolve(name)
+  <pre>1. normalize(parent_name)
+2. cid = contract.resolve(parent_name)
 3. if cid is empty => unresolved
 4. fetch /ipfs/{cid}
 5. return content + freshness metadata</pre>

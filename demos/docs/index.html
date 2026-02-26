@@ -560,6 +560,7 @@ cast send --rpc-url <span class="t-string">"$BASE_RPC"</span> --private-key <spa
     <div class="doc-tag">Contract</div>
     <h1>ABI Reference</h1>
     <p>Contract: <code>0x7Bb7f1C90DeDd39F58D4F0EDc96B9722997CCc2d</code> on Base mainnet.</p>
+    <p><strong>For launch, IPNS supports primary names only. Subnames are intentionally out of scope until a hardened v2 design is implemented and audited.</strong></p>
 
     <h2>Write functions</h2>
 
@@ -670,11 +671,11 @@ cast send --rpc-url <span class="t-string">"$BASE_RPC"</span> --private-key <spa
       <tbody>
         <tr>
           <td>https://name.ipns.io/</td>
-          <td class="desc">Subdomain mode. Preferred. Resolves <code>name</code> from registry, fetches from IPFS, serves HTTPS.</td>
+          <td class="desc">Primary-name host mode. Preferred for launch. Resolves parent <code>name</code> from registry, fetches from IPFS, serves HTTPS.</td>
         </tr>
         <tr>
           <td>https://ipns.io/name/</td>
-          <td class="desc">Path mode. Same resolution, use when subdomain routing isn't available.</td>
+          <td class="desc">Path mode. Same parent-name resolution, use when host routing isn't available.</td>
         </tr>
         <tr>
           <td>https://ipns.io/healthz</td>

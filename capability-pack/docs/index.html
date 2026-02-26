@@ -34,10 +34,11 @@
       <table class="table">
         <tr><th>Path</th><th>What it does</th></tr>
         <tr><td><code>/healthz</code></td><td>Gateway env + status snapshot</td></tr>
-        <tr><td><code>https://name.ipns.io/</code></td><td>Subdomain mode resolve</td></tr>
+        <tr><td><code>https://name.ipns.io/</code></td><td>Primary-name host resolve</td></tr>
         <tr><td><code>https://ipns.io/name/</code></td><td>Path mode resolve</td></tr>
       </table>
-      <span class="pill">subdomain mode preferred</span>
+      <span class="pill">launch: primary names only</span>
+      <p class="muted" style="margin-top:10px;">For launch, IPNS supports primary names only. Subnames are intentionally out of scope until a hardened v2 design is implemented and audited.</p>
     </article>
 
     <article class="card span-6">
@@ -46,8 +47,8 @@
 renew(string name, uint8 numYears)
 setCID(string name, string cid)
 resolve(string name) returns (string)
-resolveSub(string name, string label) returns (string)
 getPrice(string name, uint8 numYears)</pre>
+      <p class="muted" style="margin-top:10px;">Subname operations (including <code>resolveSub</code>, <code>setSubCID</code>, and <code>clearSubCID</code>) are deferred to v2 and are unsupported for launch.</p>
     </article>
 
     <article class="card span-12">
