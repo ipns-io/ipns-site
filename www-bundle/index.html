@@ -1182,8 +1182,7 @@
   const ABI = [
     'function isAvailable(string name) view returns (bool)',
     'function getPrice(string name,uint8 years) view returns (uint256)',
-    'function register(string name,uint8 years) payable',
-    'function setCID(string name,string cid)'
+    'function register(string name,uint8 years) payable'
   ];
   const readProvider = new ethers.JsonRpcProvider(BASE_RPC);
   const readContract = new ethers.Contract(CONTRACT_ADDRESS, ABI, readProvider);
@@ -1192,64 +1191,6 @@
   let pendingPrice = 0n;
   let pendingFrom = '';
   let bridgePollTimer = null;
-  const ANALYTICS_SESSION_KEY = 'ipns_analytics_session_id';
-
-  function randomId() {
-    if (window.crypto && typeof window.crypto.randomUUID === 'function') return window.crypto.randomUUID();
-    return `${Date.now()}-${Math.random().toString(16).slice(2)}`;
-  }
-
-  function getEnv() {
-    const host = window.location.hostname;
-    if (host === 'localhost' || host === '127.0.0.1') return 'development';
-    if (host.includes('staging') || host.includes('preview') || host.endsWith('.pages.dev')) return 'staging';
-    return 'production';
-  }
-
-  function getSessionId() {
-    try {
-      const existing = window.localStorage.getItem(ANALYTICS_SESSION_KEY);
-      if (existing) return existing;
-      const next = randomId();
-      window.localStorage.setItem(ANALYTICS_SESSION_KEY, next);
-      return next;
-    } catch (_) {
-      return randomId();
-    }
-  }
-
-  function trackCanonicalEvent(eventName, fields = {}) {
-    const payload = {
-      event_id: fields.event_id || randomId(),
-      timestamp: fields.timestamp || new Date().toISOString(),
-      surface: fields.surface || 'ipns.io',
-      env: fields.env || getEnv(),
-      session_id: fields.session_id || getSessionId(),
-      wallet: fields.wallet || '',
-      name: fields.name || '',
-      cid: fields.cid || '',
-      tx_hash: fields.tx_hash || '',
-      chain_id: fields.chain_id || '8453',
-      request_id: fields.request_id || randomId(),
-      operation_id: fields.operation_id || randomId()
-    };
-
-    try {
-      window.__ipnsAnalyticsCaptured = window.__ipnsAnalyticsCaptured || [];
-      window.__ipnsAnalyticsCaptured.push({ event: eventName, ...payload });
-    } catch (_) {}
-
-    try {
-      if (typeof window.gtag === 'function') window.gtag('event', eventName, payload);
-    } catch (_) {}
-
-    try {
-      window.dataLayer = window.dataLayer || [];
-      window.dataLayer.push({ event: eventName, ...payload });
-    } catch (_) {}
-
-    return payload;
-  }
 
   function resetRegisterButton() {
     registerBtn.textContent = 'check availability';
@@ -1315,21 +1256,9 @@
   }
 
   async function checkName(name) {
-    const requestId = randomId();
-    const operationId = randomId();
-    trackCanonicalEvent('search_name', {
-      name,
-      request_id: requestId,
-      operation_id: operationId
-    });
     setButtonState('checking onchain...', 'var(--amber)', 'var(--amber)', 'state-checking');
     try {
       const available = await readContract.isAvailable(name);
-      trackCanonicalEvent('check_availability', {
-        name,
-        request_id: requestId,
-        operation_id: operationId
-      });
       if (!available) {
         setButtonState(`✕ ${name}.ipns.io is taken`, 'var(--red)', 'var(--red)', 'state-taken');
         flowState = 'taken';
@@ -1357,23 +1286,45 @@
       }, 1200);
     } catch (err) {
       console.error(err);
-      trackCanonicalEvent('check_availability', {
-        name,
-        request_id: requestId,
-        operation_id: operationId
-      });
       setButtonState('rpc error, retry →', 'var(--red)', 'var(--red)', 'state-taken');
       flowState = 'error';
     }
   }
 
-  function emitRegisterTxConfirmed(name, owner, txHash, operationId) {
-    trackCanonicalEvent('register_tx_confirmed', {
-      name,
-      wallet: owner || '',
-      tx_hash: txHash || '',
-      operation_id: operationId || randomId()
-    });
+  function emitRegisterTxConfirmed(name, owner, txHash) {
+    const payload = { name, owner, txHash };
+    try {
+      if (typeof window.gtag === 'function') {
+        window.gtag('event', 'register_tx_confirmed', payload);
+      }
+    } catch (err) {
+      console.warn('gtag register_tx_confirmed failed', err);
+    }
+
+    try {
+      window.dataLayer = window.dataLayer || [];
+      window.dataLayer.push({ event: 'register_tx_confirmed', ...payload });
+    } catch (err) {
+      console.warn('dataLayer register_tx_confirmed failed', err);
+    }
+
+    try {
+      const endpoint = window.IPNS_ANALYTICS_ENDPOINT || '';
+      if (endpoint) {
+        const body = JSON.stringify(payload);
+        if (navigator.sendBeacon) {
+          navigator.sendBeacon(endpoint, body);
+        } else if (window.fetch) {
+          window.fetch(endpoint, {
+            method: 'POST',
+            headers: { 'content-type': 'application/json' },
+            body
+          }).catch(() => {});
+        }
+      }
+    } catch (err) {
+      console.warn('analytics endpoint register_tx_confirmed failed', err);
+    }
   }
 
   async function connectAndRegister() {
@@ -1402,39 +1353,10 @@
       }
 
       setButtonState('confirm tx in wallet...', 'var(--amber)', 'var(--amber)', 'state-checking');
-      const registerOperationId = randomId();
       const tx = await writeContract.register(pendingName, ONE_YEAR, { value: pendingPrice });
-      trackCanonicalEvent('register_tx_submitted', {
-        name: pendingName,
-        wallet: pendingFrom || '',
-        tx_hash: tx.hash || '',
-        operation_id: registerOperationId
-      });
       setButtonState('waiting for confirmation...', 'var(--amber)', 'var(--amber)', 'state-checking');
       await tx.wait();
-      emitRegisterTxConfirmed(pendingName, pendingFrom, tx.hash, registerOperationId);
-
-      const cidInput = window.prompt('Optional: paste CID to set now for this name (leave blank to skip)', '');
-      const cid = (cidInput || '').trim();
-      if (cid) {
-        const setCidOperationId = randomId();
-        const setTx = await writeContract.setCID(pendingName, cid);
-        trackCanonicalEvent('set_cid_tx_submitted', {
-          name: pendingName,
-          cid,
-          wallet: pendingFrom || '',
-          tx_hash: setTx.hash || '',
-          operation_id: setCidOperationId
-        });
-        await setTx.wait();
-        trackCanonicalEvent('set_cid_tx_confirmed', {
-          name: pendingName,
-          cid,
-          wallet: pendingFrom || '',
-          tx_hash: setTx.hash || '',
-          operation_id: setCidOperationId
-        });
-      }
+      emitRegisterTxConfirmed(pendingName, pendingFrom, tx.hash);
 
       setButtonState(`registered ✓ ${pendingName}.ipns.io`, 'var(--green)', 'var(--green)', 'state-success');
       flowState = 'registered';
@@ -1467,15 +1389,6 @@
       flowState = 'error';
     }
   }
-
-  window.IPNS_ANALYTICS_HOOKS = {
-    setCidTxSubmitted(ctx = {}) {
-      return trackCanonicalEvent('set_cid_tx_submitted', ctx);
-    },
-    setCidTxConfirmed(ctx = {}) {
-      return trackCanonicalEvent('set_cid_tx_confirmed', ctx);
-    }
-  };
 
   function openBridgeAndPoll() {
     const neededWei = pendingPrice + GAS_BUFFER_WEI;
