@@ -412,6 +412,49 @@
 
   .data-table tr:hover td { background: var(--surface); }
 
+  .toolbar {
+    display: grid;
+    grid-template-columns: 1fr 1fr 0.8fr auto auto auto;
+    gap: 10px;
+    margin-bottom: 12px;
+    align-items: end;
+  }
+
+  .toolbar label {
+    font-size: 10px;
+    color: var(--dim);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    display: grid;
+    gap: 6px;
+  }
+
+  .chip {
+    display: inline-block;
+    padding: 2px 8px;
+    border: 1px solid var(--border);
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+  }
+  .chip.ok { color: var(--green); border-color: rgba(63, 185, 80, 0.5); }
+  .chip.warn { color: var(--amber); border-color: rgba(210, 153, 34, 0.5); }
+  .chip.dim { color: var(--dim); }
+
+  .tiny-btn {
+    background: transparent;
+    border: 1px solid var(--border);
+    color: var(--dim);
+    font-size: 10px;
+    padding: 2px 6px;
+    cursor: pointer;
+  }
+
+  .tiny-btn:hover {
+    border-color: var(--fg);
+    color: var(--fg);
+  }
+
   /* ── RIGHT PANEL ── */
   .right-panel {
     overflow-y: auto;
@@ -492,6 +535,7 @@
     <div class="nav-group">
       <div class="nav-group-label">Registry</div>
       <div class="nav-item active" data-target="cid-update"><span class="icon">◆</span> CID Update</div>
+      <div class="nav-item" data-target="ownership"><span class="icon">○</span> Ownership</div>
       <div class="nav-item" data-target="name-lookup"><span class="icon">○</span> Name Lookup</div>
       <div class="nav-item" data-target="reserved"><span class="icon">○</span> Reserved Names</div>
       <div class="nav-item" data-target="pricing"><span class="icon">○</span> Pricing</div>
@@ -536,6 +580,49 @@
           <div class="stat-sub">blocks behind tip</div>
         </div>
       </div>
+    </div>
+
+    <div class="section" id="section-ownership">
+      <div class="section-title">Name Ownership</div>
+      <div class="toolbar">
+        <label>
+          api token
+          <input id="ownershipToken" spellcheck="false" placeholder="Bearer token for api.confetti.wtf" />
+        </label>
+        <label>
+          names csv
+          <input id="ownershipNames" spellcheck="false" value="app,status,docs,admin,www,scavone,cidrun,g,g2,guy,guy2,guy3,ella,lily,katie,korbyn,joe" />
+        </label>
+        <label>
+          owned by wallet
+          <input id="ownershipWallet" spellcheck="false" placeholder="0x..." />
+        </label>
+        <label>
+          <span>available only</span>
+          <input id="ownershipAvailableOnly" type="checkbox" />
+        </label>
+        <label>
+          <span>active only</span>
+          <input id="ownershipActiveOnly" type="checkbox" />
+        </label>
+        <button class="btn btn-primary" id="refreshOwnership">Refresh</button>
+      </div>
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>Name</th>
+            <th>Owner</th>
+            <th>Active</th>
+            <th>CID</th>
+            <th>Available</th>
+            <th>Reserved</th>
+            <th>Last Updated</th>
+            <th>Links</th>
+          </tr>
+        </thead>
+        <tbody id="ownershipTable"></tbody>
+      </table>
+      <div class="terminal" id="ownershipMeta"><span class="t-dim">// ownership data not loaded yet</span></div>
     </div>
 
     <div class="section" id="section-builder">
@@ -654,6 +741,8 @@
 <script>
 (function () {
   const CONTRACT = '0x7Bb7f1C90DeDd39F58D4F0EDc96B9722997CCc2d';
+  const OWNERSHIP_API_BASE = 'https://api.confetti.wtf';
+  let ownershipApiToken = localStorage.getItem('confetti_api_token') || '';
 
   // Clock
   function updateClock() {
@@ -696,6 +785,103 @@
     document.getElementById('blockLag').textContent = lag;
     if (lag > 0) addLog('warn', `block lag: ${lag} behind tip`);
   }, 8000);
+
+  const ownershipTable = document.getElementById('ownershipTable');
+  const ownershipMeta = document.getElementById('ownershipMeta');
+  const ownershipTokenInput = document.getElementById('ownershipToken');
+  ownershipTokenInput.value = ownershipApiToken;
+
+  function formatDate(value) {
+    if (!value) return '-';
+    const dt = new Date(value);
+    if (Number.isNaN(dt.getTime())) return '-';
+    return dt.toISOString().replace('T', ' ').slice(0, 19) + 'Z';
+  }
+
+  function shortHex(value) {
+    if (!value || value.length < 10) return value || '-';
+    return value.slice(0, 8) + '…' + value.slice(-6);
+  }
+
+  function chipForBool(flag, onLabel, offLabel) {
+    return flag
+      ? `<span class="chip ok">${onLabel}</span>`
+      : `<span class="chip dim">${offLabel}</span>`;
+  }
+
+  function applyOwnershipFilters(rows) {
+    const wallet = (document.getElementById('ownershipWallet').value || '').trim().toLowerCase();
+    const availableOnly = document.getElementById('ownershipAvailableOnly').checked;
+    const activeOnly = document.getElementById('ownershipActiveOnly').checked;
+    return rows.filter((row) => {
+      if (wallet && (row.owner || '').toLowerCase() !== wallet) return false;
+      if (availableOnly && !row.available) return false;
+      if (activeOnly && !row.active) return false;
+      return true;
+    });
+  }
+
+  function renderOwnershipRows(rows) {
+    if (!rows.length) {
+      ownershipTable.innerHTML = `<tr><td colspan="8" class="warn">no rows match current filters</td></tr>`;
+      return;
+    }
+    ownershipTable.innerHTML = rows.map((row) => {
+      const ownerValue = row.owner || '-';
+      const cidValue = row.cid || '-';
+      const ownerCopy = row.owner ? `<button class="tiny-btn" data-copy="${row.owner}">copy</button>` : '';
+      const cidCopy = row.cid ? `<button class="tiny-btn" data-copy="${row.cid}">copy</button>` : '';
+      return `<tr>
+        <td class="name">${row.name}</td>
+        <td>${shortHex(ownerValue)} ${ownerCopy}</td>
+        <td>${chipForBool(row.active, 'active', 'inactive')}</td>
+        <td>${shortHex(cidValue)} ${cidCopy}</td>
+        <td>${chipForBool(row.available, 'available', 'taken')}</td>
+        <td>${chipForBool(row.reserved, 'reserved', 'open')}</td>
+        <td>${formatDate(row.updatedAt)}</td>
+        <td>
+          <a href="https://${row.name}.ipns.io" target="_blank" rel="noreferrer">.ipns.io</a>
+          ·
+          <a href="https://${row.name}.cid.run" target="_blank" rel="noreferrer">.cid.run</a>
+        </td>
+      </tr>`;
+    }).join('');
+  }
+
+  async function loadOwnership() {
+    const names = (document.getElementById('ownershipNames').value || '').trim();
+    if (!names) {
+      ownershipMeta.innerHTML = `<span class="t-error">ERROR: names list required</span>`;
+      return;
+    }
+    const url = `${OWNERSHIP_API_BASE}/v1/names/ownership?names=${encodeURIComponent(names)}`;
+    const headers = ownershipApiToken ? { Authorization: `Bearer ${ownershipApiToken}` } : {};
+    ownershipMeta.innerHTML = `<span class="t-info">loading ${url}</span>`;
+    try {
+      const response = await fetch(url, { headers });
+      const bodyText = await response.text();
+      let payload = null;
+      try { payload = JSON.parse(bodyText); } catch {}
+      if (!response.ok) {
+        ownershipMeta.innerHTML =
+          `<span class="t-error">ERROR ${response.status}</span>\n${bodyText.slice(0, 800)}`;
+        addLog('err', `ownership fetch failed (${response.status})`);
+        return;
+      }
+      const rows = Array.isArray(payload?.names) ? payload.names : [];
+      const filtered = applyOwnershipFilters(rows);
+      renderOwnershipRows(filtered);
+      const requestId = payload?.requestId || response.headers.get('x-request-id') || 'n/a';
+      ownershipMeta.innerHTML =
+        `<span class="t-ok">requestId=${requestId}</span>\n` +
+        `<span class="t-dim">chainId=${payload?.chainId || 'n/a'} contract=${payload?.contractAddress || 'n/a'} fetchedAt=${payload?.fetchedAt || 'n/a'} rows=${filtered.length}/${rows.length}</span>`;
+      addLog('ok', `ownership refreshed (${filtered.length}/${rows.length} rows)`);
+    } catch (error) {
+      ownershipMeta.innerHTML =
+        `<span class="t-error">ERROR network failure</span>\n${String(error)}`;
+      addLog('err', 'ownership fetch network failure');
+    }
+  }
 
   // Reserved names data
   const reserved = [
@@ -785,10 +971,45 @@
     addLog('info', 'terminal cleared');
   });
 
+  document.getElementById('refreshOwnership').addEventListener('click', () => {
+    loadOwnership();
+  });
+  ownershipTokenInput.addEventListener('change', () => {
+    ownershipApiToken = ownershipTokenInput.value.trim();
+    if (ownershipApiToken) {
+      localStorage.setItem('confetti_api_token', ownershipApiToken);
+    } else {
+      localStorage.removeItem('confetti_api_token');
+    }
+    loadOwnership();
+  });
+  document.getElementById('ownershipAvailableOnly').addEventListener('change', () => {
+    loadOwnership();
+  });
+  document.getElementById('ownershipActiveOnly').addEventListener('change', () => {
+    loadOwnership();
+  });
+  document.getElementById('ownershipWallet').addEventListener('change', () => {
+    loadOwnership();
+  });
+  document.getElementById('ownershipTable').addEventListener('click', async (event) => {
+    const target = event.target;
+    if (!(target instanceof HTMLElement)) return;
+    const copyValue = target.getAttribute('data-copy');
+    if (!copyValue) return;
+    try {
+      await navigator.clipboard.writeText(copyValue);
+      addLog('ok', `copied ${copyValue.slice(0, 14)}...`);
+    } catch {
+      addLog('warn', 'clipboard blocked while copying value');
+    }
+  });
+
   // Left navigation actions
   const mainPanel = document.querySelector('.main-panel');
   const sections = {
     snapshot: document.getElementById('section-snapshot'),
+    ownership: document.getElementById('section-ownership'),
     builder: document.getElementById('section-builder'),
     reserved: document.getElementById('section-reserved'),
     pricing: document.getElementById('section-pricing')
@@ -811,6 +1032,11 @@
     if (sectionKey === 'pricing') {
       sections.pricing.style.display = '';
       scrollMainTo(sections.pricing);
+      return;
+    }
+    if (sectionKey === 'ownership') {
+      sections.ownership.style.display = '';
+      scrollMainTo(sections.ownership);
       return;
     }
     if (sectionKey === 'reserved') {
@@ -850,6 +1076,11 @@
           setBuilderMode('resolve');
           openSection('builder');
           addLog('info', 'opened: Name Lookup');
+          break;
+        case 'ownership':
+          openSection('ownership');
+          loadOwnership();
+          addLog('info', 'opened: Ownership');
           break;
         case 'reserved':
           openSection('reserved');
@@ -895,6 +1126,7 @@
   };
 
   openSection('builder');
+  loadOwnership();
 })();
 </script>
 </body>
