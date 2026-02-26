@@ -1164,6 +1164,77 @@
   const previewUrl = document.getElementById('previewUrl');
   let checkTimer = null;
   let postCheckTimer = null;
+  const ANALYTICS_SESSION_KEY = 'ipns_analytics_session_id';
+
+  function randomId() {
+    if (window.crypto && typeof window.crypto.randomUUID === 'function') return window.crypto.randomUUID();
+    return `${Date.now()}-${Math.random().toString(16).slice(2)}`;
+  }
+
+  function getEnv() {
+    const host = window.location.hostname;
+    if (host === 'localhost' || host === '127.0.0.1') return 'development';
+    if (host.includes('staging') || host.includes('preview') || host.endsWith('.pages.dev')) return 'staging';
+    return 'production';
+  }
+
+  function getSessionId() {
+    try {
+      const existing = window.localStorage.getItem(ANALYTICS_SESSION_KEY);
+      if (existing) return existing;
+      const next = randomId();
+      window.localStorage.setItem(ANALYTICS_SESSION_KEY, next);
+      return next;
+    } catch (_) {
+      return randomId();
+    }
+  }
+
+  function trackCanonicalEvent(eventName, fields = {}) {
+    const payload = {
+      event_id: fields.event_id || randomId(),
+      timestamp: fields.timestamp || new Date().toISOString(),
+      surface: fields.surface || 'ipns.io',
+      env: fields.env || getEnv(),
+      session_id: fields.session_id || getSessionId(),
+      wallet: fields.wallet || '',
+      name: fields.name || '',
+      cid: fields.cid || '',
+      tx_hash: fields.tx_hash || '',
+      chain_id: fields.chain_id || '8453',
+      request_id: fields.request_id || randomId(),
+      operation_id: fields.operation_id || randomId()
+    };
+
+    window.__ipnsAnalyticsCaptured = window.__ipnsAnalyticsCaptured || [];
+    window.__ipnsAnalyticsCaptured.push({ event: eventName, ...payload });
+
+    try {
+      window.dataLayer = window.dataLayer || [];
+      window.dataLayer.push({ event: eventName, ...payload });
+    } catch (_) {}
+
+    try {
+      if (typeof window.gtag === 'function') window.gtag('event', eventName, payload);
+    } catch (_) {}
+
+    return payload;
+  }
+
+  window.IPNS_ANALYTICS_HOOKS = {
+    registerTxSubmitted(ctx = {}) {
+      return trackCanonicalEvent('register_tx_submitted', ctx);
+    },
+    registerTxConfirmed(ctx = {}) {
+      return trackCanonicalEvent('register_tx_confirmed', ctx);
+    },
+    setCidTxSubmitted(ctx = {}) {
+      return trackCanonicalEvent('set_cid_tx_submitted', ctx);
+    },
+    setCidTxConfirmed(ctx = {}) {
+      return trackCanonicalEvent('set_cid_tx_confirmed', ctx);
+    }
+  };
 
   function resetRegisterButton() {
     registerBtn.textContent = 'check availability (demo)';
@@ -1193,6 +1264,13 @@
       nameInput.focus();
       return;
     }
+    const operationId = randomId();
+    const requestId = randomId();
+    trackCanonicalEvent('search_name', {
+      name,
+      operation_id: operationId,
+      request_id: requestId
+    });
     if (checkTimer) clearTimeout(checkTimer);
     if (postCheckTimer) clearTimeout(postCheckTimer);
 
@@ -1206,6 +1284,11 @@
     
     checkTimer = setTimeout(() => {
       const takenNames = new Set(['admin', 'docs', 'www', 'app', 'status', 'spec', 'whitepaper', 'cid', 'ipns']);
+      trackCanonicalEvent('check_availability', {
+        name,
+        operation_id: operationId,
+        request_id: requestId
+      });
       if (takenNames.has(name.toLowerCase())) {
         registerBtn.textContent = `✕ ${name}.ipns.io is taken`;
         registerBtn.style.color = 'var(--red)';
