@@ -414,7 +414,7 @@
 
   .toolbar {
     display: grid;
-    grid-template-columns: 1fr 1fr 0.8fr auto auto auto;
+    grid-template-columns: 1fr 1fr 0.7fr 0.7fr auto auto auto;
     gap: 10px;
     margin-bottom: 12px;
     align-items: end;
@@ -536,6 +536,7 @@
       <div class="nav-group-label">Registry</div>
       <div class="nav-item active" data-target="cid-update"><span class="icon">◆</span> CID Update</div>
       <div class="nav-item" data-target="ownership"><span class="icon">○</span> Ownership</div>
+      <div class="nav-item" data-target="owned-names"><span class="icon">○</span> Owned Names</div>
       <div class="nav-item" data-target="name-lookup"><span class="icon">○</span> Name Lookup</div>
       <div class="nav-item" data-target="reserved"><span class="icon">○</span> Reserved Names</div>
       <div class="nav-item" data-target="pricing"><span class="icon">○</span> Pricing</div>
@@ -606,6 +607,7 @@
           <input id="ownershipActiveOnly" type="checkbox" />
         </label>
         <button class="btn btn-primary" id="refreshOwnership">Refresh</button>
+        <button class="btn btn-secondary" id="refreshOwned">Owned Names</button>
       </div>
       <table class="data-table">
         <thead>
@@ -883,6 +885,45 @@
     }
   }
 
+  async function loadOwnedNames() {
+    const owner = (document.getElementById('ownershipWallet').value || '').trim();
+    if (!owner) {
+      ownershipMeta.innerHTML = `<span class="t-error">ERROR: owner wallet required for owned names view</span>`;
+      return;
+    }
+    const url = `${OWNERSHIP_API_BASE}/v1/names/by-owner?owner=${encodeURIComponent(owner)}`;
+    const headers = ownershipApiToken ? { Authorization: `Bearer ${ownershipApiToken}` } : {};
+    ownershipMeta.innerHTML = `<span class="t-info">loading ${url}</span>`;
+    try {
+      const response = await fetch(url, { headers });
+      const bodyText = await response.text();
+      let payload = null;
+      try { payload = JSON.parse(bodyText); } catch {}
+      if (!response.ok) {
+        ownershipMeta.innerHTML =
+          `<span class="t-error">ERROR ${response.status}</span>\n${bodyText.slice(0, 800)}`;
+        addLog('err', `owned-names fetch failed (${response.status})`);
+        return;
+      }
+      const rows = Array.isArray(payload?.names) ? payload.names : [];
+      const normalizedRows = rows.map((row) => ({
+        ...row,
+        available: false,
+        reserved: false
+      }));
+      renderOwnershipRows(normalizedRows);
+      const requestId = payload?.requestId || response.headers.get('x-request-id') || 'n/a';
+      ownershipMeta.innerHTML =
+        `<span class="t-ok">requestId=${requestId}</span>\n` +
+        `<span class="t-dim">owner=${payload?.owner || owner} chainId=${payload?.chainId || 'n/a'} rows=${rows.length}</span>`;
+      addLog('ok', `owned names refreshed (${rows.length} rows)`);
+    } catch (error) {
+      ownershipMeta.innerHTML =
+        `<span class="t-error">ERROR network failure</span>\n${String(error)}`;
+      addLog('err', 'owned-names fetch network failure');
+    }
+  }
+
   // Reserved names data
   const reserved = [
     { name: 'www',      reason: 'public landing',         state: 'ok' },
@@ -973,6 +1014,9 @@
 
   document.getElementById('refreshOwnership').addEventListener('click', () => {
     loadOwnership();
+  });
+  document.getElementById('refreshOwned').addEventListener('click', () => {
+    loadOwnedNames();
   });
   ownershipTokenInput.addEventListener('change', () => {
     ownershipApiToken = ownershipTokenInput.value.trim();
@@ -1076,6 +1120,11 @@
           setBuilderMode('resolve');
           openSection('builder');
           addLog('info', 'opened: Name Lookup');
+          break;
+        case 'owned-names':
+          openSection('ownership');
+          loadOwnedNames();
+          addLog('info', 'opened: Owned Names');
           break;
         case 'ownership':
           openSection('ownership');

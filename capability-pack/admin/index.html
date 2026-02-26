@@ -63,6 +63,7 @@
       </label>
       <div class="controls" style="margin-top:10px;">
         <button id="refreshOwnership">Refresh ownership</button>
+        <button class="secondary" id="refreshOwned">Owned names</button>
       </div>
       <table class="table" style="margin-top:10px;">
         <tr><th>Name</th><th>Owner</th><th>Active</th><th>CID</th><th>Available</th><th>Reserved</th><th>Last Updated</th></tr>
@@ -162,6 +163,45 @@
         requestId: payload?.requestId || res.headers.get('x-request-id'),
         chainId: payload?.chainId,
         contractAddress: payload?.contractAddress,
+        rowCount: names.length
+      }, null, 2);
+    } catch (err) {
+      rowsEl.innerHTML = '<tr><td colspan="7">network error</td></tr>';
+      metaEl.textContent = String(err);
+    }
+  });
+
+  document.getElementById('refreshOwned').addEventListener('click', async () => {
+    const token = tokenInput.value.trim();
+    const owner = prompt('Owner wallet (0x...)');
+    if (!owner) return;
+    const headers = token ? { Authorization: 'Bearer ' + token } : {};
+    const url = 'https://api.confetti.wtf/v1/names/by-owner?owner=' + encodeURIComponent(owner);
+    metaEl.textContent = 'loading ' + url;
+    try {
+      const res = await fetch(url, { headers });
+      const txt = await res.text();
+      let payload = null;
+      try { payload = JSON.parse(txt); } catch {}
+      if (!res.ok) {
+        rowsEl.innerHTML = '<tr><td colspan="7">error ' + res.status + '</td></tr>';
+        metaEl.textContent = txt.slice(0, 800);
+        return;
+      }
+      const names = Array.isArray(payload?.names) ? payload.names : [];
+      rowsEl.innerHTML = names.map((r) => '<tr>' +
+        '<td>' + r.name + '</td>' +
+        '<td>' + short(r.owner) + '</td>' +
+        '<td>' + (r.active ? 'yes' : 'no') + '</td>' +
+        '<td>' + short(r.cid) + '</td>' +
+        '<td>n/a</td>' +
+        '<td>n/a</td>' +
+        '<td>' + (r.updatedAt || '-') + '</td>' +
+        '</tr>').join('');
+      metaEl.textContent = JSON.stringify({
+        requestId: payload?.requestId || res.headers.get('x-request-id'),
+        owner: payload?.owner,
+        chainId: payload?.chainId,
         rowCount: names.length
       }, null, 2);
     } catch (err) {
