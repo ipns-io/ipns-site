@@ -56,6 +56,25 @@
     </article>
 
     <article class="card span-12">
+      <h3>Name ownership (onchain read-only)</h3>
+      <p class="muted">API: <code>GET /v1/names/ownership</code> (requires token)</p>
+      <label>Token
+        <input id="ownershipToken" placeholder="Bearer token" />
+      </label>
+      <div class="controls" style="margin-top:10px;">
+        <button id="refreshOwnership">Refresh ownership</button>
+        <button class="secondary" id="refreshOwned">Owned names</button>
+      </div>
+      <table class="table" style="margin-top:10px;">
+        <tr><th>Name</th><th>Owner</th><th>Active</th><th>CID</th><th>Available</th><th>Reserved</th><th>Last Updated</th></tr>
+        <tbody id="ownershipRows">
+          <tr><td colspan="7">not loaded</td></tr>
+        </tbody>
+      </table>
+      <pre class="code" id="ownershipMeta" style="margin-top:10px;">// waiting for refresh</pre>
+    </article>
+
+    <article class="card span-12">
       <h3>Reserved names (example policy set)</h3>
       <table class="table">
         <tr><th>Name</th><th>Reason</th><th>State</th></tr>
@@ -75,6 +94,7 @@
 (function () {
   const cmd = document.getElementById('adminCmd');
   const out = document.getElementById('adminOut');
+  const tracked = 'app,status,docs,admin,www,scavone,cidrun,g,g2,guy,guy2,guy3,ella,lily,katie,korbyn,joe';
 
   function render() {
     const name = (document.getElementById('adminName').value || '').trim().toLowerCase();
@@ -99,6 +119,94 @@
       out.innerHTML = '<span class="ok">command copied</span>';
     } catch (_) {
       out.innerHTML = '<span class="warn">clipboard blocked; copy manually</span>';
+    }
+  });
+
+  const tokenInput = document.getElementById('ownershipToken');
+  const rowsEl = document.getElementById('ownershipRows');
+  const metaEl = document.getElementById('ownershipMeta');
+  tokenInput.value = localStorage.getItem('confetti_api_token') || '';
+
+  function short(v) {
+    if (!v) return '-';
+    if (v.length < 14) return v;
+    return v.slice(0, 8) + '…' + v.slice(-6);
+  }
+
+  document.getElementById('refreshOwnership').addEventListener('click', async () => {
+    const token = tokenInput.value.trim();
+    if (token) localStorage.setItem('confetti_api_token', token);
+    const headers = token ? { Authorization: 'Bearer ' + token } : {};
+    const url = 'https://api.confetti.wtf/v1/names/ownership?names=' + encodeURIComponent(tracked);
+    metaEl.textContent = 'loading ' + url;
+    try {
+      const res = await fetch(url, { headers });
+      const txt = await res.text();
+      let payload = null;
+      try { payload = JSON.parse(txt); } catch {}
+      if (!res.ok) {
+        rowsEl.innerHTML = '<tr><td colspan="7">error ' + res.status + '</td></tr>';
+        metaEl.textContent = txt.slice(0, 800);
+        return;
+      }
+      const names = Array.isArray(payload?.names) ? payload.names : [];
+      rowsEl.innerHTML = names.map((r) => '<tr>' +
+        '<td>' + r.name + '</td>' +
+        '<td>' + short(r.owner) + '</td>' +
+        '<td>' + (r.active ? 'yes' : 'no') + '</td>' +
+        '<td>' + short(r.cid) + '</td>' +
+        '<td>' + (r.available ? 'yes' : 'no') + '</td>' +
+        '<td>' + (r.reserved ? 'yes' : 'no') + '</td>' +
+        '<td>' + (r.updatedAt || '-') + '</td>' +
+        '</tr>').join('');
+      metaEl.textContent = JSON.stringify({
+        requestId: payload?.requestId || res.headers.get('x-request-id'),
+        chainId: payload?.chainId,
+        contractAddress: payload?.contractAddress,
+        rowCount: names.length
+      }, null, 2);
+    } catch (err) {
+      rowsEl.innerHTML = '<tr><td colspan="7">network error</td></tr>';
+      metaEl.textContent = String(err);
+    }
+  });
+
+  document.getElementById('refreshOwned').addEventListener('click', async () => {
+    const token = tokenInput.value.trim();
+    const owner = prompt('Owner wallet (0x...)');
+    if (!owner) return;
+    const headers = token ? { Authorization: 'Bearer ' + token } : {};
+    const url = 'https://api.confetti.wtf/v1/names/by-owner?owner=' + encodeURIComponent(owner);
+    metaEl.textContent = 'loading ' + url;
+    try {
+      const res = await fetch(url, { headers });
+      const txt = await res.text();
+      let payload = null;
+      try { payload = JSON.parse(txt); } catch {}
+      if (!res.ok) {
+        rowsEl.innerHTML = '<tr><td colspan="7">error ' + res.status + '</td></tr>';
+        metaEl.textContent = txt.slice(0, 800);
+        return;
+      }
+      const names = Array.isArray(payload?.names) ? payload.names : [];
+      rowsEl.innerHTML = names.map((r) => '<tr>' +
+        '<td>' + r.name + '</td>' +
+        '<td>' + short(r.owner) + '</td>' +
+        '<td>' + (r.active ? 'yes' : 'no') + '</td>' +
+        '<td>' + short(r.cid) + '</td>' +
+        '<td>n/a</td>' +
+        '<td>n/a</td>' +
+        '<td>' + (r.updatedAt || '-') + '</td>' +
+        '</tr>').join('');
+      metaEl.textContent = JSON.stringify({
+        requestId: payload?.requestId || res.headers.get('x-request-id'),
+        owner: payload?.owner,
+        chainId: payload?.chainId,
+        rowCount: names.length
+      }, null, 2);
+    } catch (err) {
+      rowsEl.innerHTML = '<tr><td colspan="7">network error</td></tr>';
+      metaEl.textContent = String(err);
     }
   });
 })();

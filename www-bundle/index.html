@@ -1235,6 +1235,29 @@
     });
   }
 
+  function buildRegisterTxPayload(from, name, years, valueWei) {
+    const iface = new ethers.Interface(ABI);
+    return {
+      from,
+      to: CONTRACT_ADDRESS,
+      value: ethers.toBeHex(valueWei),
+      data: iface.encodeFunctionData('register', [name, years]),
+      chainId: BASE_MAINNET_CHAIN_ID
+    };
+  }
+
+  async function waitForTxReceipt(txHash, maxAttempts = 90, delayMs = 2000) {
+    for (let i = 0; i < maxAttempts; i += 1) {
+      const receipt = await window.ethereum.request({
+        method: 'eth_getTransactionReceipt',
+        params: [txHash]
+      });
+      if (receipt) return receipt;
+      await new Promise((resolve) => setTimeout(resolve, delayMs));
+    }
+    throw new Error('transaction confirmation timed out');
+  }
+
   function weiToEthStr(wei) {
     const v = BigInt(wei);
     const whole = v / 1000000000000000000n;
@@ -1358,7 +1381,6 @@
       const browserProvider = new ethers.BrowserProvider(window.ethereum);
       const signer = await browserProvider.getSigner();
       pendingFrom = await signer.getAddress();
-      const writeContract = new ethers.Contract(CONTRACT_ADDRESS, ABI, signer);
 
       const balanceWei = await readProvider.getBalance(pendingFrom);
       const neededWei = pendingPrice + GAS_BUFFER_WEI;
@@ -1370,17 +1392,27 @@
       }
 
       setButtonState('confirm tx in wallet...', 'var(--amber)', 'var(--amber)', 'state-checking');
-      const tx = await writeContract.register(pendingName, ONE_YEAR, { value: pendingPrice });
+      const txPayload = buildRegisterTxPayload(
+        pendingFrom,
+        pendingName,
+        ONE_YEAR,
+        pendingPrice
+      );
+      window.__ipnsLastRegisterTxPayload = txPayload;
+      const txHash = await window.ethereum.request({
+        method: 'eth_sendTransaction',
+        params: [txPayload]
+      });
       setButtonState('waiting for confirmation...', 'var(--amber)', 'var(--amber)', 'state-checking');
-      await tx.wait();
-      emitRegisterTxConfirmed(pendingName, pendingFrom, tx.hash);
+      await waitForTxReceipt(txHash);
+      emitRegisterTxConfirmed(pendingName, pendingFrom, txHash);
 
       setButtonState(`registered ✓ ${pendingName}.ipns.io`, 'var(--green)', 'var(--green)', 'state-success');
       flowState = 'registered';
 
       updateTerminal([
         `# registration confirmed`,
-        `# tx: ${tx.hash}`,
+        `# tx: ${txHash}`,
         '',
         '# next: point your name to a CID',
         `cast send $CONTRACT "setCID(string,string)" "${pendingName}" "bafy..."`
