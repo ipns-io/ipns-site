@@ -3,8 +3,8 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1" />
-<link rel="icon" href="https://www.ipns.io/favicon.ico" sizes="any">
-<link rel="apple-touch-icon" href="https://www.ipns.io/apple-touch-icon.png">
+<link rel="icon" href="/favicon.ico" sizes="any">
+<link rel="apple-touch-icon" href="/apple-touch-icon.png">
 <title>admin.ipns.io — Operations Console</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Exo+2:wght@300;400;500;600;700&display=swap" rel="stylesheet">
@@ -504,6 +504,42 @@
     max-height: 280px;
     overflow-y: auto;
   }
+
+  .admin-gate {
+    margin: 18px 20px;
+    border: 1px solid var(--border);
+    background: var(--surface);
+    padding: 18px;
+  }
+
+  .admin-gate h2 {
+    font-size: 13px;
+    letter-spacing: 0.09em;
+    text-transform: uppercase;
+    color: var(--amber);
+    margin-bottom: 12px;
+  }
+
+  .admin-gate p {
+    color: var(--dim);
+    font-size: 12px;
+    line-height: 1.5;
+    margin-bottom: 10px;
+  }
+
+  .admin-gate-actions {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-top: 10px;
+  }
+
+  .admin-gate-state {
+    margin-top: 10px;
+    font-size: 11px;
+    color: var(--dim);
+    min-height: 18px;
+  }
 </style>
 </head>
 <body>
@@ -524,7 +560,18 @@
   </nav>
 </header>
 
-<div class="layout">
+<div class="admin-gate" id="adminGate">
+  <h2>Private Operator Console</h2>
+  <p>Access is restricted to allowlisted operator wallets. Connect your wallet to enter admin.</p>
+  <p>All write controls stay in this private console. Public status remains read-only.</p>
+  <div class="admin-gate-actions">
+    <button class="btn btn-primary" id="adminGateConnectBtn">Connect Operator Wallet</button>
+    <button class="btn btn-secondary" id="adminGateRetryBtn">Retry</button>
+  </div>
+  <div class="admin-gate-state" id="adminGateState">wallet not connected</div>
+</div>
+
+<div class="layout" id="adminLayout" style="display:none;">
 
   <!-- LEFT: NAVIGATION -->
   <div class="panel left-panel">
@@ -744,7 +791,15 @@
 (function () {
   const CONTRACT = '0x7Bb7f1C90DeDd39F58D4F0EDc96B9722997CCc2d';
   const OWNERSHIP_API_BASE = 'https://api.confetti.wtf';
+  const OWNER_ADDRESS_RE = /^0x[a-fA-F0-9]{40}$/;
+  const OPERATOR_ALLOWLIST = new Set([
+    '0x58f579b62f86d27b931aa08c332368b880d118e4',
+    '0x33ad6b22a087a33841e8adc5b4f2f44ba844378c',
+    '0x30f20a0705068cbe832bd60cda8a39f9f9f665b7'
+  ]);
   let ownershipApiToken = localStorage.getItem('confetti_api_token') || '';
+  let operatorUnlocked = false;
+  let operatorAddress = '';
 
   // Clock
   function updateClock() {
@@ -775,19 +830,6 @@
     ).join('');
   }
 
-  // Boot log
-  addLog('ok', 'admin console initialized');
-  addLog('info', 'contract: 0x7Bb7...Cc2d');
-  addLog('ok', 'rpc connection healthy');
-  addLog('info', 'gateway: base mainnet');
-
-  // Block lag sim
-  setInterval(() => {
-    const lag = Math.random() < 0.9 ? 0 : 1;
-    document.getElementById('blockLag').textContent = lag;
-    if (lag > 0) addLog('warn', `block lag: ${lag} behind tip`);
-  }, 8000);
-
   const ownershipTable = document.getElementById('ownershipTable');
   const ownershipMeta = document.getElementById('ownershipMeta');
   const ownershipTokenInput = document.getElementById('ownershipToken');
@@ -812,7 +854,7 @@
   }
 
   function applyOwnershipFilters(rows) {
-    const wallet = (document.getElementById('ownershipWallet').value || '').trim().toLowerCase();
+    const wallet = normalizeOwnerAddress(document.getElementById('ownershipWallet').value);
     const availableOnly = document.getElementById('ownershipAvailableOnly').checked;
     const activeOnly = document.getElementById('ownershipActiveOnly').checked;
     return rows.filter((row) => {
@@ -885,14 +927,52 @@
     }
   }
 
+  async function hydrateTrackedNamesFromSnapshot() {
+    try {
+      const response = await fetch(`${OWNERSHIP_API_BASE}/v1/public/registry-snapshot`, {
+        headers: { "x-gateway": "ipfs.confetti.wtf" }
+      });
+      if (!response.ok) {
+        return;
+      }
+      const payload = await response.json();
+      const names = Array.isArray(payload?.names)
+        ? payload.names.map((row) => row?.name).filter(Boolean)
+        : [];
+      if (!names.length) {
+        return;
+      }
+      const namesInput = document.getElementById('ownershipNames');
+      namesInput.value = names.join(',');
+    } catch {
+      // best effort only
+    }
+  }
+
   async function loadOwnedNames() {
-    const owner = (document.getElementById('ownershipWallet').value || '').trim();
+    const ownerInput = normalizeOwnerAddress(document.getElementById('ownershipWallet').value);
+    const owner = ownerInput || operatorAddress;
     if (!owner) {
-      ownershipMeta.innerHTML = `<span class="t-error">ERROR: owner wallet required for owned names view</span>`;
+      ownershipMeta.innerHTML = `<span class="t-error">Connect wallet to load owned names</span>`;
+      addLog('warn', 'owned-names blocked: wallet missing');
       return;
     }
+    if (!OWNER_ADDRESS_RE.test(owner)) {
+      ownershipMeta.innerHTML = `<span class="t-error">Invalid owner wallet address</span>`;
+      addLog('warn', 'owned-names blocked: invalid owner format');
+      return;
+    }
+    if (!ownershipApiToken) {
+      ownershipMeta.innerHTML = `<span class="t-error">Enter valid API token</span>`;
+      addLog('warn', 'owned-names blocked: api token missing');
+      return;
+    }
+    document.getElementById('ownershipWallet').value = owner;
     const url = `${OWNERSHIP_API_BASE}/v1/names/by-owner?owner=${encodeURIComponent(owner)}`;
-    const headers = ownershipApiToken ? { Authorization: `Bearer ${ownershipApiToken}` } : {};
+    const headers = {
+      Authorization: `Bearer ${ownershipApiToken}`,
+      'x-gateway': 'ipfs.confetti.wtf'
+    };
     ownershipMeta.innerHTML = `<span class="t-info">loading ${url}</span>`;
     try {
       const response = await fetch(url, { headers });
@@ -900,6 +980,12 @@
       let payload = null;
       try { payload = JSON.parse(bodyText); } catch {}
       if (!response.ok) {
+        if (response.status === 401) {
+          ownershipMeta.innerHTML =
+            `<span class="t-error">Enter valid API token</span>\n${bodyText.slice(0, 400)}`;
+          addLog('err', 'owned-names fetch failed (401 token invalid)');
+          return;
+        }
         ownershipMeta.innerHTML =
           `<span class="t-error">ERROR ${response.status}</span>\n${bodyText.slice(0, 800)}`;
         addLog('err', `owned-names fetch failed (${response.status})`);
@@ -922,6 +1008,12 @@
         `<span class="t-error">ERROR network failure</span>\n${String(error)}`;
       addLog('err', 'owned-names fetch network failure');
     }
+  }
+
+  function normalizeOwnerAddress(value) {
+    const raw = String(value || '').trim();
+    if (!raw) return '';
+    return raw.toLowerCase();
   }
 
   // Reserved names data
@@ -991,12 +1083,20 @@
     return term.textContent;
   }
 
+  function requireOperator() {
+    if (operatorUnlocked) return true;
+    addLog('warn', 'blocked: connect allowlisted operator wallet first');
+    return false;
+  }
+
   document.getElementById('buildCmd').addEventListener('click', () => {
+    if (!requireOperator()) return;
     const cmd = buildCommand();
     if (cmd) addLog('info', `command generated: ${document.getElementById('opSelect').value}("${document.getElementById('adminName').value}")`);
   });
 
   document.getElementById('copyCmd').addEventListener('click', async () => {
+    if (!requireOperator()) return;
     const text = term.textContent;
     if (!text || text.includes('awaiting')) return;
     try {
@@ -1008,6 +1108,7 @@
   });
 
   document.getElementById('clearCmd').addEventListener('click', () => {
+    if (!requireOperator()) return;
     term.innerHTML = `<span class="t-dim">// cleared</span>`;
     addLog('info', 'terminal cleared');
   });
@@ -1026,6 +1127,9 @@
       localStorage.removeItem('confetti_api_token');
     }
     loadOwnership();
+    if (operatorAddress) {
+      loadOwnedNames();
+    }
   });
   document.getElementById('ownershipAvailableOnly').addEventListener('change', () => {
     loadOwnership();
@@ -1106,6 +1210,10 @@
 
   document.querySelectorAll('.nav-item').forEach((item) => {
     item.addEventListener('click', () => {
+      if (!operatorUnlocked) {
+        addLog('warn', 'blocked: operator wallet required for admin actions');
+        return;
+      }
       document.querySelectorAll('.nav-item').forEach((n) => n.classList.remove('active'));
       item.classList.add('active');
 
@@ -1171,11 +1279,71 @@
   });
 
   window.unreservePrompt = function(name) {
+    if (!requireOperator()) return;
     addLog('warn', `unreserve requested: ${name} (not executed — static demo)`);
   };
 
-  openSection('builder');
-  loadOwnership();
+  function setGateState(text, tone) {
+    const el = document.getElementById('adminGateState');
+    if (!el) return;
+    el.textContent = text;
+    if (tone) {
+      el.style.color = tone;
+    }
+  }
+
+  function unlockConsole(addr) {
+    operatorUnlocked = true;
+    operatorAddress = String(addr || '').toLowerCase();
+    const gate = document.getElementById('adminGate');
+    const layout = document.getElementById('adminLayout');
+    if (gate) gate.style.display = 'none';
+    if (layout) layout.style.display = 'grid';
+    addLog('ok', 'admin console initialized');
+    addLog('ok', `operator wallet authorized: ${addr.slice(0, 8)}...${addr.slice(-4)}`);
+    addLog('info', 'contract: 0x7Bb7...Cc2d');
+    addLog('ok', 'rpc connection healthy');
+    addLog('info', 'gateway: base mainnet');
+    document.getElementById('ownershipWallet').value = operatorAddress;
+
+    setInterval(() => {
+      const lag = Math.random() < 0.9 ? 0 : 1;
+      document.getElementById('blockLag').textContent = lag;
+      if (lag > 0) addLog('warn', `block lag: ${lag} behind tip`);
+    }, 8000);
+
+    openSection('builder');
+    hydrateTrackedNamesFromSnapshot().then(() => loadOwnership());
+    loadOwnedNames();
+  }
+
+  async function connectOperatorWallet() {
+    if (!window.ethereum) {
+      setGateState('no injected wallet detected', 'var(--red)');
+      return;
+    }
+    try {
+      setGateState('requesting wallet connection...', 'var(--amber)');
+      const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
+      const address = String(accounts?.[0] || '').toLowerCase();
+      if (!address) {
+        setGateState('wallet returned no account', 'var(--red)');
+        return;
+      }
+      if (!OPERATOR_ALLOWLIST.has(address)) {
+        setGateState(`wallet not allowlisted: ${address}`, 'var(--red)');
+        addLog('warn', `denied wallet: ${address}`);
+        return;
+      }
+      setGateState(`authorized: ${address}`, 'var(--green)');
+      unlockConsole(address);
+    } catch (error) {
+      setGateState(`wallet connect failed: ${String(error && error.message ? error.message : error)}`, 'var(--red)');
+    }
+  }
+
+  document.getElementById('adminGateConnectBtn').addEventListener('click', connectOperatorWallet);
+  document.getElementById('adminGateRetryBtn').addEventListener('click', connectOperatorWallet);
 })();
 </script>
 </body>
