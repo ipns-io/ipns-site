@@ -791,6 +791,7 @@
 (function () {
   const CONTRACT = '0x7Bb7f1C90DeDd39F58D4F0EDc96B9722997CCc2d';
   const OWNERSHIP_API_BASE = 'https://api.confetti.wtf';
+  const OWNER_ADDRESS_RE = /^0x[a-fA-F0-9]{40}$/;
   const OPERATOR_ALLOWLIST = new Set([
     '0x58f579b62f86d27b931aa08c332368b880d118e4',
     '0x33ad6b22a087a33841e8adc5b4f2f44ba844378c',
@@ -798,6 +799,7 @@
   ]);
   let ownershipApiToken = localStorage.getItem('confetti_api_token') || '';
   let operatorUnlocked = false;
+  let operatorAddress = '';
 
   // Clock
   function updateClock() {
@@ -852,7 +854,7 @@
   }
 
   function applyOwnershipFilters(rows) {
-    const wallet = (document.getElementById('ownershipWallet').value || '').trim().toLowerCase();
+    const wallet = normalizeOwnerAddress(document.getElementById('ownershipWallet').value);
     const availableOnly = document.getElementById('ownershipAvailableOnly').checked;
     const activeOnly = document.getElementById('ownershipActiveOnly').checked;
     return rows.filter((row) => {
@@ -926,13 +928,29 @@
   }
 
   async function loadOwnedNames() {
-    const owner = (document.getElementById('ownershipWallet').value || '').trim();
+    const ownerInput = normalizeOwnerAddress(document.getElementById('ownershipWallet').value);
+    const owner = ownerInput || operatorAddress;
     if (!owner) {
-      ownershipMeta.innerHTML = `<span class="t-error">ERROR: owner wallet required for owned names view</span>`;
+      ownershipMeta.innerHTML = `<span class="t-error">Connect wallet to load owned names</span>`;
+      addLog('warn', 'owned-names blocked: wallet missing');
       return;
     }
+    if (!OWNER_ADDRESS_RE.test(owner)) {
+      ownershipMeta.innerHTML = `<span class="t-error">Invalid owner wallet address</span>`;
+      addLog('warn', 'owned-names blocked: invalid owner format');
+      return;
+    }
+    if (!ownershipApiToken) {
+      ownershipMeta.innerHTML = `<span class="t-error">Enter valid API token</span>`;
+      addLog('warn', 'owned-names blocked: api token missing');
+      return;
+    }
+    document.getElementById('ownershipWallet').value = owner;
     const url = `${OWNERSHIP_API_BASE}/v1/names/by-owner?owner=${encodeURIComponent(owner)}`;
-    const headers = ownershipApiToken ? { Authorization: `Bearer ${ownershipApiToken}` } : {};
+    const headers = {
+      Authorization: `Bearer ${ownershipApiToken}`,
+      'x-gateway': 'ipfs.confetti.wtf'
+    };
     ownershipMeta.innerHTML = `<span class="t-info">loading ${url}</span>`;
     try {
       const response = await fetch(url, { headers });
@@ -940,6 +958,12 @@
       let payload = null;
       try { payload = JSON.parse(bodyText); } catch {}
       if (!response.ok) {
+        if (response.status === 401) {
+          ownershipMeta.innerHTML =
+            `<span class="t-error">Enter valid API token</span>\n${bodyText.slice(0, 400)}`;
+          addLog('err', 'owned-names fetch failed (401 token invalid)');
+          return;
+        }
         ownershipMeta.innerHTML =
           `<span class="t-error">ERROR ${response.status}</span>\n${bodyText.slice(0, 800)}`;
         addLog('err', `owned-names fetch failed (${response.status})`);
@@ -962,6 +986,12 @@
         `<span class="t-error">ERROR network failure</span>\n${String(error)}`;
       addLog('err', 'owned-names fetch network failure');
     }
+  }
+
+  function normalizeOwnerAddress(value) {
+    const raw = String(value || '').trim();
+    if (!raw) return '';
+    return raw.toLowerCase();
   }
 
   // Reserved names data
@@ -1075,6 +1105,9 @@
       localStorage.removeItem('confetti_api_token');
     }
     loadOwnership();
+    if (operatorAddress) {
+      loadOwnedNames();
+    }
   });
   document.getElementById('ownershipAvailableOnly').addEventListener('change', () => {
     loadOwnership();
@@ -1239,6 +1272,7 @@
 
   function unlockConsole(addr) {
     operatorUnlocked = true;
+    operatorAddress = String(addr || '').toLowerCase();
     const gate = document.getElementById('adminGate');
     const layout = document.getElementById('adminLayout');
     if (gate) gate.style.display = 'none';
@@ -1248,6 +1282,7 @@
     addLog('info', 'contract: 0x7Bb7...Cc2d');
     addLog('ok', 'rpc connection healthy');
     addLog('info', 'gateway: base mainnet');
+    document.getElementById('ownershipWallet').value = operatorAddress;
 
     setInterval(() => {
       const lag = Math.random() < 0.9 ? 0 : 1;
@@ -1257,6 +1292,7 @@
 
     openSection('builder');
     loadOwnership();
+    loadOwnedNames();
   }
 
   async function connectOperatorWallet() {
