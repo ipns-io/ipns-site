@@ -3,8 +3,8 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1" />
-<link rel="icon" href="https://www.ipns.io/favicon.ico" sizes="any">
-<link rel="apple-touch-icon" href="https://www.ipns.io/apple-touch-icon.png">
+<link rel="icon" href="/favicon.ico" sizes="any">
+<link rel="apple-touch-icon" href="/apple-touch-icon.png">
 <title>status.ipns.io — System Status</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=VT323&family=Azeret+Mono:wght@300;400;500;600&display=swap" rel="stylesheet">
@@ -464,28 +464,24 @@
     <div class="cell-title">Content · IPFS <span class="led" id="ipfsLed"></span></div>
 
     <div class="metric">
-      <span class="metric-key">upstream</span>
-      <span class="metric-val ok" id="ipfsUpstream">REACHABLE</span>
+      <span class="metric-key">registered</span>
+      <span class="metric-val ok" id="countRegistered">—</span>
     </div>
     <div class="metric">
-      <span class="metric-key">cache_hit</span>
-      <span class="metric-val" id="ipfsCacheHit">—</span>
+      <span class="metric-key">active</span>
+      <span class="metric-val ok" id="countActive">—</span>
     </div>
     <div class="metric">
-      <span class="metric-key">pin_count</span>
-      <span class="metric-val dim" id="ipfsPinCount">—</span>
+      <span class="metric-key">available</span>
+      <span class="metric-val" id="countAvailable">—</span>
     </div>
     <div class="metric">
-      <span class="metric-key">sample_name</span>
-      <span class="metric-val dim">yourname.ipns.io</span>
+      <span class="metric-key">reserved</span>
+      <span class="metric-val" id="countReserved">—</span>
     </div>
     <div class="metric">
-      <span class="metric-key">sample_resolve</span>
-      <span class="metric-val ok" id="ipfsSampleResolve">CID FOUND</span>
-    </div>
-    <div class="metric">
-      <span class="metric-key">sample_fetch</span>
-      <span class="metric-val ok" id="ipfsSampleFetch">200 OK</span>
+      <span class="metric-key">source</span>
+      <span class="metric-val dim" id="countsSource">/v1/public/registry-snapshot</span>
     </div>
 
     <div class="spark-wrap" id="ipfsSpark"></div>
@@ -565,31 +561,15 @@
 
 <div class="status-footer">
   <div class="contract-addr">
-    CONTRACT: <span>0x7Bb7f1C90DeDd39F58D4F0EDc96B9722997CCc2d</span> · BASE MAINNET
+    CONTRACT: <span>0x1bbE8783884C23e1bf02F1221291696798002d8a</span> · BASE MAINNET
   </div>
   <div id="liveClock">--:--:-- UTC</div>
   <div>AUTO-REFRESH: <span style="color:var(--g0);">60s</span></div>
 </div>
 
-<script src="https://cdn.jsdelivr.net/npm/ethers@6.13.2/dist/ethers.umd.min.js"></script>
 <script>
 (function () {
-  const RPC_URL = "https://mainnet.base.org";
-  const CHAIN_ID = 8453;
-  const CONTRACT = "0x1bbE8783884C23e1bf02F1221291696798002d8a";
-  const TRACKED_NAMES = [
-    "app","status","docs","admin","www","scavone","cidrun","g","g2","guy","guy2","guy3","ella","lily","katie","korbyn","joe"
-  ];
-
-  const ABI = [
-    "function resolve(string) view returns (string)",
-    "function getRecord(string) view returns (address owner,string cid,string label,uint64 createdAt,uint64 expiresAt,bool active)",
-    "function isAvailable(string) view returns (bool)",
-    "function reserved(string) view returns (bool)"
-  ];
-
-  const provider = new ethers.JsonRpcProvider(RPC_URL, { chainId: CHAIN_ID, name: "base" });
-  const contract = new ethers.Contract(CONTRACT, ABI, provider);
+  const API_BASE = "https://api.confetti.wtf";
   let latestRows = [];
 
   function tick() {
@@ -601,19 +581,13 @@
   tick();
 
   function shortHex(value) {
-    if (!value || value === ethers.ZeroAddress) return "-";
+    if (!value) return "-";
     return value.slice(0, 8) + "…" + value.slice(-6);
   }
 
   function shortTx(value) {
     if (!value || value.length < 12) return value || "-";
     return value.slice(0, 10) + "…" + value.slice(-6);
-  }
-
-  function toIsoFromSec(secValue) {
-    const sec = Number(secValue || 0);
-    if (!sec || sec <= 0) return "-";
-    return new Date(sec * 1000).toISOString();
   }
 
   function setMetricText(id, text, cls) {
@@ -653,51 +627,31 @@
   }
 
   async function loadRegistryRows() {
-    const rows = [];
     const startedAt = Date.now();
-    for (const name of TRACKED_NAMES) {
-      try {
-        const [record, available, reserved] = await Promise.all([
-          contract.getRecord(name),
-          contract.isAvailable(name),
-          contract.reserved(name)
-        ]);
-        rows.push({
-          name,
-          owner: String(record.owner || ""),
-          cid: String(record.cid || ""),
-          active: Boolean(record.active),
-          available: Boolean(available),
-          reserved: Boolean(reserved),
-          createdAt: Number(record.createdAt || 0),
-          updatedAt: toIsoFromSec(record.createdAt),
-          expiresAt: toIsoFromSec(record.expiresAt)
-        });
-      } catch (_error) {
-        rows.push({
-          name,
-          owner: "",
-          cid: "",
-          active: false,
-          available: true,
-          reserved: false,
-          createdAt: 0,
-          updatedAt: "-",
-          expiresAt: "-"
-        });
-      }
+    const response = await fetch(`${API_BASE}/v1/public/registry-snapshot`, {
+      headers: { "x-gateway": "ipfs.confetti.wtf" }
+    });
+    if (!response.ok) {
+      throw new Error(`registry snapshot HTTP ${response.status}`);
     }
-    latestRows = rows;
+    const payload = await response.json();
+    const rows = Array.isArray(payload?.names) ? payload.names : [];
+    latestRows = rows.map((row) => ({
+      ...row,
+      createdAt: Date.parse(row.updatedAt || 0)
+    }));
     const elapsed = Date.now() - startedAt;
-    renderStatus(rows, elapsed);
-    renderRecent(rows);
+    renderStatus(payload, elapsed);
+    await loadRecentRegistrations();
   }
 
-  function renderStatus(rows, elapsedMs) {
-    const activeCount = rows.filter((row) => row.active).length;
-    const availableCount = rows.filter((row) => row.available).length;
-    const reservedCount = rows.filter((row) => row.reserved).length;
-    const lag = 0;
+  function renderStatus(snapshot, elapsedMs) {
+    const counts = snapshot?.counts || {};
+    const registeredCount = Number(counts.registered || 0);
+    const activeCount = Number(counts.active || 0);
+    const availableCount = Number(counts.available || 0);
+    const reservedCount = Number(counts.reserved || 0);
+    const lag = Number(snapshot?.lag || 0);
 
     setMetricText("gwRoute", "UP", "ok");
     setMetricText("gwHealth", "OK", "ok");
@@ -710,39 +664,44 @@
     setMetricText("chainBlockLag", String(lag), lag === 0 ? "ok" : "warn");
     setMetricText("chainResolve", `${Math.max(20, Math.round(elapsedMs / 4))}ms`, "ok");
 
-    setMetricText("ipfsUpstream", "REACHABLE", "ok");
-    setMetricText("ipfsCacheHit", "n/a", "dim");
-    setMetricText("ipfsPinCount", String(activeCount), "dim");
-    setMetricText("ipfsSampleResolve", activeCount > 0 ? "CID FOUND" : "EMPTY", activeCount > 0 ? "ok" : "warn");
-    setMetricText("ipfsSampleFetch", activeCount > 0 ? "200 OK" : "WARN", activeCount > 0 ? "ok" : "warn");
+    setMetricText("countRegistered", String(registeredCount), "ok");
+    setMetricText("countActive", String(activeCount), activeCount > 0 ? "ok" : "warn");
+    setMetricText("countAvailable", String(availableCount), "dim");
+    setMetricText("countReserved", String(reservedCount), "dim");
+    setMetricText("countsSource", "registry-snapshot", "dim");
 
     const overall = document.getElementById("overallStatus");
     if (overall) {
       overall.className = "overall-status ok";
       overall.textContent =
-        `● PUBLIC READ-ONLY · ${activeCount} active · ${availableCount} available · ${reservedCount} reserved`;
+        `● REGISTERED ${registeredCount} · ACTIVE ${activeCount} · AVAILABLE ${availableCount} · RESERVED ${reservedCount}`;
     }
   }
 
-  function renderRecent(rows) {
-    const sorted = [...rows].sort((a, b) => b.createdAt - a.createdAt).slice(0, 50);
+  async function loadRecentRegistrations() {
+    const response = await fetch(`${API_BASE}/v1/public/registrations/recent?limit=50`, {
+      headers: { "x-gateway": "ipfs.confetti.wtf" }
+    });
+    if (!response.ok) {
+      throw new Error(`recent registrations HTTP ${response.status}`);
+    }
+    const payload = await response.json();
+    const sorted = Array.isArray(payload?.rows) ? payload.rows : [];
     const tbody = document.getElementById("registrationFeed");
     if (!tbody) return;
     if (!sorted.length) {
-      tbody.innerHTML = `<tr><td colspan="5" class="dim">no registrations in tracked set</td></tr>`;
+      tbody.innerHTML = `<tr><td colspan="5" class="dim">no recent registration rows returned</td></tr>`;
       return;
     }
     tbody.innerHTML = sorted
       .map((row) => {
-        const txHint = row.cid
-          ? `https://ipfs.confetti.wtf/ipfs/${row.cid}/index.html`
-          : `https://${row.name}.ipns.io/`;
+        const txLink = `https://basescan.org/tx/${row.txHash}`;
         return `<tr>
-          <td class="dim">${row.updatedAt}</td>
+          <td class="dim">${row.blockTime}</td>
           <td>${row.name}</td>
           <td>${shortHex(row.owner)}</td>
-          <td class="dim">${shortTx(row.cid)}</td>
-          <td><a href="https://${row.name}.ipns.io/" target="_blank" rel="noreferrer">.ipns.io</a> · <a href="https://${row.name}.cid.run/" target="_blank" rel="noreferrer">.cid.run</a> · <a href="${txHint}" target="_blank" rel="noreferrer">cid</a></td>
+          <td class="dim"><a href="${txLink}" target="_blank" rel="noreferrer">${shortTx(row.txHash)}</a></td>
+          <td><a href="https://${row.name}.ipns.io/" target="_blank" rel="noreferrer">.ipns.io</a> · <a href="https://${row.name}.cid.run/" target="_blank" rel="noreferrer">.cid.run</a> · <a href="${txLink}" target="_blank" rel="noreferrer">tx</a></td>
         </tr>`;
       })
       .join("");
@@ -770,7 +729,7 @@
     if (lookupName) {
       const row = findByName(lookupName);
       if (!row) {
-        lines.push(`<span class="t-key">name</span> ${lookupName} not found in tracked set`);
+        lines.push(`<span class="t-key">name</span> ${lookupName} not found`);
       } else {
         lines.push(`<span class="t-key">name</span> ${row.name}`);
         lines.push(`<span class="t-key">owner</span> ${row.owner || "-"}`);
@@ -791,8 +750,15 @@
   });
 
   buildSparks();
-  loadRegistryRows();
-  setInterval(loadRegistryRows, 60000);
+  loadRegistryRows().catch((error) => {
+    const out = document.getElementById("lookupOutput");
+    if (out) {
+      out.innerHTML = `<span class="t-error">status load failed: ${String(error && error.message ? error.message : error)}</span>`;
+    }
+  });
+  setInterval(() => {
+    loadRegistryRows().catch(() => {});
+  }, 60000);
 })();
 </script>
 </body>

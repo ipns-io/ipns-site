@@ -3,8 +3,8 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1" />
-<link rel="icon" href="https://www.ipns.io/favicon.ico" sizes="any">
-<link rel="apple-touch-icon" href="https://www.ipns.io/apple-touch-icon.png">
+<link rel="icon" href="/favicon.ico" sizes="any">
+<link rel="apple-touch-icon" href="/apple-touch-icon.png">
 <title>admin.ipns.io — Operations Console</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Exo+2:wght@300;400;500;600;700&display=swap" rel="stylesheet">
@@ -927,6 +927,28 @@
     }
   }
 
+  async function hydrateTrackedNamesFromSnapshot() {
+    try {
+      const response = await fetch(`${OWNERSHIP_API_BASE}/v1/public/registry-snapshot`, {
+        headers: { "x-gateway": "ipfs.confetti.wtf" }
+      });
+      if (!response.ok) {
+        return;
+      }
+      const payload = await response.json();
+      const names = Array.isArray(payload?.names)
+        ? payload.names.map((row) => row?.name).filter(Boolean)
+        : [];
+      if (!names.length) {
+        return;
+      }
+      const namesInput = document.getElementById('ownershipNames');
+      namesInput.value = names.join(',');
+    } catch {
+      // best effort only
+    }
+  }
+
   async function loadOwnedNames() {
     const ownerInput = normalizeOwnerAddress(document.getElementById('ownershipWallet').value);
     const owner = ownerInput || operatorAddress;
@@ -1291,7 +1313,7 @@
     }, 8000);
 
     openSection('builder');
-    loadOwnership();
+    hydrateTrackedNamesFromSnapshot().then(() => loadOwnership());
     loadOwnedNames();
   }
 
