@@ -37,6 +37,27 @@
     -webkit-font-smoothing: antialiased;
   }
 
+  .back-to-app {
+    position: fixed;
+    top: 16px;
+    right: 16px;
+    z-index: 1000;
+    color: var(--green);
+    border: 1px solid var(--green-dim);
+    background: rgba(10, 10, 10, 0.9);
+    padding: 8px 12px;
+    border-radius: 2px;
+    font-size: 12px;
+    letter-spacing: 0.4px;
+    text-decoration: none;
+    line-height: 1;
+  }
+
+  .back-to-app:hover {
+    text-decoration: none;
+    box-shadow: 0 0 0 1px var(--green-glow) inset;
+  }
+
   .paper {
     max-width: 720px;
     margin: 0 auto;
@@ -279,10 +300,17 @@
     .logo { font-size: 9px; }
     body { font-size: 14px; }
     .code-block, .diagram { font-size: 11px; padding: 14px; }
+    .back-to-app {
+      top: 10px;
+      right: 10px;
+      padding: 7px 10px;
+      font-size: 11px;
+    }
   }
 </style>
 </head>
 <body>
+<a class="back-to-app" href="https://www.ipns.io/">← Back to app</a>
 <div class="paper">
 
   <!-- Header -->
