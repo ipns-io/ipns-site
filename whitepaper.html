@@ -20,7 +20,7 @@
     --cyan: #00e5ff;
     --amber: #ffb000;
     --pink: #f9a8d4;
-    --muted: #555;
+    --muted: #c0c0c0;
     --border: #1a1a1a;
   }
 
@@ -35,6 +35,27 @@
     font-size: 15px;
     line-height: 1.85;
     -webkit-font-smoothing: antialiased;
+  }
+
+  .back-to-app {
+    position: fixed;
+    top: 16px;
+    right: 16px;
+    z-index: 1000;
+    color: var(--green);
+    border: 1px solid var(--green-dim);
+    background: rgba(10, 10, 10, 0.9);
+    padding: 8px 12px;
+    border-radius: 2px;
+    font-size: 12px;
+    letter-spacing: 0.4px;
+    text-decoration: none;
+    line-height: 1;
+  }
+
+  .back-to-app:hover {
+    text-decoration: none;
+    box-shadow: 0 0 0 1px var(--green-glow) inset;
   }
 
   .paper {
@@ -279,10 +300,17 @@
     .logo { font-size: 9px; }
     body { font-size: 14px; }
     .code-block, .diagram { font-size: 11px; padding: 14px; }
+    .back-to-app {
+      top: 10px;
+      right: 10px;
+      padding: 7px 10px;
+      font-size: 11px;
+    }
   }
 </style>
 </head>
 <body>
+<a class="back-to-app" href="https://www.ipns.io/">← Back to app</a>
 <div class="paper">
 
   <!-- Header -->
@@ -582,7 +610,7 @@ Request: https://ipns.io/yourname/docs/
     <span class="section-num">06 — Agents</span>
     <h2>The users that can't use anything else</h2>
     <p>
-      There is a class of user that cannot register a traditional domain. Cannot spin up and maintain a server. Cannot pass identity verification with a registrar. Cannot agree to Terms of Service. That class is autonomous AI agents, and they are an increasingly significant presence on the web.
+      A growing class of autonomous software actors cannot natively hold web identity under current DNS and legal rails. They cannot independently satisfy registrar identity checks, accept Terms of Service as legal persons, or operate durable infrastructure without a human or organizational sponsor. As agents become a primary class of internet actor, identity systems must support them directly rather than forcing human intermediaries.
     </p>
     <p>
       An autonomous agent that needs to deploy a product today faces a bootstrapping problem. It needs a human to register a domain, configure a server, and manage DNS on its behalf. Or it needs to burn money continuously on hosted infrastructure that requires an account, a credit card, and human oversight.
